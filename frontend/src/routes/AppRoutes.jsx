@@ -7,11 +7,18 @@ import Transfer from "../pages/Transfer";
 import Sales from "../pages/Sales";
 import Reports from "../pages/Reports";
 import LiquorAdd from "../pages/LiquorAdd";
+import UserManagement from "../pages/UserManagement";
 import { UserProvider, useUser } from "../context/UserContext";
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user } = useUser();
   if (!user) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // If worker tries to access anything but /sales, redirect to /sales
+    if (user.role === "worker") return <Navigate to="/sales" replace />;
+    // For other roles, redirect to dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
   return children;
 };
 
@@ -20,12 +27,13 @@ const AppRoutes = () => (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-        <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
-        <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/liquor-add" element={<ProtectedRoute><LiquorAdd /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin']}><Inventory /></ProtectedRoute>} />
+        <Route path="/transfer" element={<ProtectedRoute allowedRoles={['admin']}><Transfer /></ProtectedRoute>} />
+        <Route path="/sales" element={<ProtectedRoute allowedRoles={['admin','worker']}><Sales /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
+        <Route path="/liquor-add" element={<ProtectedRoute allowedRoles={['admin']}><LiquorAdd /></ProtectedRoute>} />
+        <Route path="/user-management" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
         <Route path="*" element={<Login />} />
       </Routes>
     </Router>

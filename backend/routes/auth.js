@@ -42,4 +42,47 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// List all users (admin only)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username role');
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete a user by username (admin only)
+router.delete('/users/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const deleted = await User.findOneAndDelete({ username });
+    if (!deleted) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'User deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update admin username and/or password (admin only)
+router.put('/admin-update', async (req, res) => {
+  try {
+    const { currentUsername, username, password } = req.body;
+    const update = {};
+    if (username) update.username = username;
+    if (password) {
+      update.password = await bcrypt.hash(password, 10);
+    }
+    const admin = await User.findOneAndUpdate(
+      { username: currentUsername, role: 'admin' },
+      update,
+      { new: true }
+    );
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    res.json({ message: 'Admin updated', user: { username: admin.username, role: admin.role } });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 
