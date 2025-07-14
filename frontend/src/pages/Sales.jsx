@@ -9,6 +9,7 @@ const Sales = () => {
   const [success, setSuccess] = useState("");
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [billItems, setBillItems] = useState([]); // {itemId, brand, type, qty, price, inventoryId, shotSize}
 
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
@@ -21,65 +22,137 @@ const Sales = () => {
     fetchInventory();
   }, []);
 
-  // Sell bottle
-  const handleSellBottle = async (item) => {
-    setError("");
-    setSuccess("");
-    setLoading(true);
-    try {
-      // Update inventory: deduct 1 bottle
-      const res = await fetch(`/api/inventory/${item._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bottles: item.bottles - 1 }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Error selling bottle");
-      setSuccess(`Sold 1 bottle of ${item.liquor.brand}`);
-      setBill({
-        items: [{ brand: item.liquor.brand, type: "bottle", qty: 1, price: item.liquor.price }],
-        total: item.liquor.price,
-        time: new Date().toLocaleString(),
-      });
-      fetchInventory();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  // Add bottle to bill
+  const addBottleToBill = (item) => {
+    setBillItems(prev => {
+      const idx = prev.findIndex(b => b.inventoryId === item._id && b.type === "bottle");
+      if (idx !== -1) {
+        // Increment qty
+        const updated = [...prev];
+        updated[idx].qty += 1;
+        updated[idx].price += item.liquor.price;
+        return updated;
+      }
+      return [...prev, {
+        itemId: `${item._id}-bottle`,
+        brand: item.liquor.brand,
+        type: "bottle",
+        qty: 1,
+        price: item.liquor.price,
+        inventoryId: item._id
+      }];
+    });
   };
 
-  // Sell shot (button version)
-  const handleSellShot = async (item, shotSize) => {
+  // Add shot to bill
+  const addShotToBill = (item, shotSize) => {
+    const shotPrice = item.liquor.shotPrices?.[shotSize] ? Number(item.liquor.shotPrices[shotSize]) : 0;
+    setBillItems(prev => {
+      const idx = prev.findIndex(b => b.inventoryId === item._id && b.type === "shot" && b.shotSize === shotSize);
+      if (idx !== -1) {
+        // Increment qty
+        const updated = [...prev];
+        updated[idx].qty += 1;
+        updated[idx].price += shotPrice;
+        return updated;
+      }
+      return [...prev, {
+        itemId: `${item._id}-shot-${shotSize}`,
+        brand: item.liquor.brand,
+        type: "shot",
+        qty: 1,
+        price: shotPrice,
+        inventoryId: item._id,
+        shotSize
+      }];
+    });
+  };
+
+  // Remove item from bill
+  const removeBillItem = (itemId) => {
+    setBillItems(prev => prev.filter(b => b.itemId !== itemId));
+  };
+
+  // Update qty in bill
+  const updateBillItemQty = (itemId, qty) => {
+    setBillItems(prev => prev.map(b => b.itemId === itemId ? { ...b, qty: qty < 1 ? 1 : qty, price: b.type === "bottle" ? b.qty * b.price / b.qty : b.qty * b.price / b.qty } : b));
+  };
+
+  // Process bill
+  const handleProcessBill = async () => {
     setError("");
     setSuccess("");
     setLoading(true);
-    const shotPrice = item.liquor.shotPrices?.[shotSize] ? Number(item.liquor.shotPrices[shotSize]) : 0;
-    let { openVolume = 0, bottles = 0, liquor } = item;
     try {
-      let newOpenVolume = openVolume;
-      let newBottles = bottles;
-      if (openVolume >= shotSize) {
-        newOpenVolume = openVolume - shotSize;
-      } else {
-        if (bottles < 1) throw new Error("No bottles left to open for this brand");
-        newOpenVolume = openVolume + liquor.size - shotSize;
-        newBottles = bottles - 1;
+      // For each bill item, update inventory and log sale
+      for (const b of billItems) {
+        if (b.type === "bottle") {
+          // Deduct bottles
+          const invRes = await fetch(`/api/inventory/${b.inventoryId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bottles: inventory.find(i => i._id === b.inventoryId).bottles - b.qty })
+          });
+          const invData = await invRes.json();
+          if (!invRes.ok) throw new Error(invData.message || `Error selling bottle for ${b.brand}`);
+          // Log sale
+          await fetch(`/api/sale`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              liquorId: inventory.find(i => i._id === b.inventoryId).liquor._id,
+              store: 2,
+              type: "bottle",
+              quantity: b.qty,
+              price: b.price,
+              user: "worker"
+            })
+          });
+        } else if (b.type === "shot") {
+          // Deduct openVolume/bottles for each shot
+          let inv = inventory.find(i => i._id === b.inventoryId);
+          let { openVolume = 0, bottles = 0, liquor } = inv;
+          let newOpenVolume = openVolume;
+          let newBottles = bottles;
+          for (let i = 0; i < b.qty; i++) {
+            if (newOpenVolume >= b.shotSize) {
+              newOpenVolume -= b.shotSize;
+            } else {
+              if (newBottles < 1) throw new Error(`No bottles left to open for ${b.brand}`);
+              newOpenVolume += liquor.size - b.shotSize;
+              newBottles -= 1;
+            }
+          }
+          // Update inventory
+          const invRes = await fetch(`/api/inventory/${b.inventoryId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bottles: newBottles, openVolume: newOpenVolume })
+          });
+          const invData = await invRes.json();
+          if (!invRes.ok) throw new Error(invData.message || `Error selling shot for ${b.brand}`);
+          // Log sale
+          await fetch(`/api/sale`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              liquorId: inv.liquor._id,
+              store: 2,
+              type: "shot",
+              quantity: b.qty * b.shotSize,
+              price: b.price,
+              user: "worker"
+            })
+          });
+        }
       }
-      // Update inventory
-      const res = await fetch(`/api/inventory/${item._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bottles: newBottles, openVolume: newOpenVolume }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Error selling shot");
-      setSuccess(`Sold ${shotSize}ml shot of ${item.liquor.brand}`);
+      setSuccess("Bill processed successfully!");
       setBill({
-        items: [{ brand: item.liquor.brand, type: "shot", qty: shotSize, price: shotPrice }],
-        total: shotPrice,
+        items: billItems,
+        total: billItems.reduce((sum, b) => sum + b.price, 0),
         time: new Date().toLocaleString(),
       });
+      setBillItems([]);
       fetchInventory();
     } catch (err) {
       setError(err.message);
@@ -98,7 +171,7 @@ const Sales = () => {
         <h1 className="text-3xl font-bold mb-4">Sales (Store 2)</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
         {success && <div className="text-green-600 mb-4">{success}</div>}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto mb-8">
           <table className="min-w-full bg-white border rounded shadow">
             <thead>
               <tr className="bg-blue-100">
@@ -107,8 +180,8 @@ const Sales = () => {
                 <th className="py-2 px-4 border">Bottles</th>
                 <th className="py-2 px-4 border">Open Volume (ml)</th>
                 <th className="py-2 px-4 border">Shot Prices</th>
-                <th className="py-2 px-4 border">Sell Bottle</th>
-                <th className="py-2 px-4 border">Sell Shot</th>
+                <th className="py-2 px-4 border">Add Bottle</th>
+                <th className="py-2 px-4 border">Add Shot</th>
               </tr>
             </thead>
             <tbody>
@@ -128,10 +201,10 @@ const Sales = () => {
                   <td className="py-2 px-4 border">
                     <button
                       className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      onClick={() => handleSellBottle(item)}
+                      onClick={() => addBottleToBill(item)}
                       disabled={loading || item.bottles < 1}
                     >
-                      Sell Bottle
+                      + Bottle
                     </button>
                   </td>
                   <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
@@ -140,10 +213,10 @@ const Sales = () => {
                         <button
                           key={size}
                           className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
-                          onClick={() => handleSellShot(item, size)}
+                          onClick={() => addShotToBill(item, size)}
                           disabled={loading}
                         >
-                          {size}ml - {item.liquor.shotPrices[size]}
+                          + {size}ml
                         </button>
                       ) : null
                     ))}
@@ -152,6 +225,64 @@ const Sales = () => {
               ))}
             </tbody>
           </table>
+        </div>
+        {/* Bill Builder Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-2">Current Bill</h2>
+          {billItems.length === 0 ? (
+            <div className="text-gray-500">No items in bill. Add bottles or shots above.</div>
+          ) : (
+            <table className="min-w-full bg-white border rounded shadow text-sm mb-2">
+              <thead>
+                <tr className="bg-blue-50">
+                  <th className="py-1 px-2 border">Brand</th>
+                  <th className="py-1 px-2 border">Type</th>
+                  <th className="py-1 px-2 border">Qty</th>
+                  <th className="py-1 px-2 border">Unit</th>
+                  <th className="py-1 px-2 border">Price</th>
+                  <th className="py-1 px-2 border">Remove</th>
+                </tr>
+              </thead>
+              <tbody>
+                {billItems.map(b => (
+                  <tr key={b.itemId} className="text-center">
+                    <td className="py-1 px-2 border">{b.brand}</td>
+                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : `${b.shotSize}ml Shot`}</td>
+                    <td className="py-1 px-2 border">
+                      <input
+                        type="number"
+                        min="1"
+                        value={b.qty}
+                        onChange={e => updateBillItemQty(b.itemId, Number(e.target.value))}
+                        className="w-16 px-1 py-0.5 border rounded text-center"
+                        disabled={loading}
+                      />
+                    </td>
+                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : "ml"}</td>
+                    <td className="py-1 px-2 border">{b.price.toLocaleString()}</td>
+                    <td className="py-1 px-2 border">
+                      <button
+                        className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        onClick={() => removeBillItem(b.itemId)}
+                        disabled={loading}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <div className="flex justify-end mt-2">
+            <button
+              className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+              onClick={handleProcessBill}
+              disabled={loading || billItems.length === 0}
+            >
+              {loading ? "Processing..." : "Process Bill & Print"}
+            </button>
+          </div>
         </div>
         {/* Bill Modal */}
         {bill && (
@@ -170,8 +301,8 @@ const Sales = () => {
                 <tbody>
                   {bill.items.map((item, idx) => (
                     <tr key={idx}>
-                      <td>{item.brand} {item.type === "shot" ? `(${item.qty}ml)` : "(Bottle)"}</td>
-                      <td className="text-right">{item.type === "shot" ? 1 : item.qty}</td>
+                      <td>{item.brand} {item.type === "shot" ? `(${item.qty} x ${item.shotSize}ml)` : "(Bottle)"}</td>
+                      <td className="text-right">{item.qty}</td>
                       <td className="text-right">{item.price.toLocaleString()}</td>
                     </tr>
                   ))}
