@@ -29,7 +29,9 @@ const Inventory = () => {
     // Map liquorId to bottles for Store 2
     const s2map = {};
     data2.forEach(row => {
-      s2map[row.liquor._id] = row.bottles;
+      if (row.liquor) {
+        s2map[row.liquor._id] = row.bottles;
+      }
     });
     setStore2Map(s2map);
   };

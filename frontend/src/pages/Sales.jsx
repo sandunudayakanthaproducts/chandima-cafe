@@ -112,7 +112,7 @@ const Sales = () => {
               </tr>
             </thead>
             <tbody>
-              {inventory.map((item) => (
+              {inventory.filter(item => item && item.liquor).map((item) => (
                 <tr key={item._id} className="text-center">
                   <td className="py-2 px-4 border">{item.liquor.brand}</td>
                   <td className="py-2 px-4 border">{item.liquor.size}</td>
