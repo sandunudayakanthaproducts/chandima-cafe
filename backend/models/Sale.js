@@ -8,6 +8,7 @@ const saleSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   timestamp: { type: Date, default: Date.now },
   user: { type: String },
+  billId: { type: String }, // optional, for bill grouping
 });
 
 export default mongoose.model('Sale', saleSchema); 

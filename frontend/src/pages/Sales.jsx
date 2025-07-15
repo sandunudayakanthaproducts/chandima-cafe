@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 
+function generateBillId() {
+  return (
+    Date.now().toString(36) +
+    Math.random().toString(36).substring(2, 8)
+  );
+}
+
 const SHOT_SIZES = [25, 50, 100, 120, 180];
 
 const Sales = () => {
@@ -83,6 +90,7 @@ const Sales = () => {
     setError("");
     setSuccess("");
     setLoading(true);
+    const billId = generateBillId();
     try {
       // For each bill item, update inventory and log sale
       for (const b of billItems) {
@@ -105,7 +113,8 @@ const Sales = () => {
               type: "bottle",
               quantity: b.qty,
               price: b.price,
-              user: "worker"
+              user: "worker",
+              billId
             })
           });
         } else if (b.type === "shot") {
@@ -141,16 +150,37 @@ const Sales = () => {
               type: "shot",
               quantity: b.qty * b.shotSize,
               price: b.price,
-              user: "worker"
+              user: "worker",
+              billId
             })
           });
         }
       }
+      // Save the bill as a document
+      await fetch('/api/bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billId,
+          items: billItems.map(b => ({
+            brand: b.brand,
+            type: b.type,
+            qty: b.qty,
+            price: b.price,
+            shotSize: b.shotSize,
+            liquorId: inventory.find(i => i._id === b.inventoryId)?.liquor?._id
+          })),
+          total: billItems.reduce((sum, b) => sum + b.price, 0),
+          time: new Date().toISOString(),
+          user: "worker"
+        })
+      });
       setSuccess("Bill processed successfully!");
       setBill({
         items: billItems,
         total: billItems.reduce((sum, b) => sum + b.price, 0),
         time: new Date().toLocaleString(),
+        billId
       });
       setBillItems([]);
       fetchInventory();
@@ -289,6 +319,7 @@ const Sales = () => {
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
             <div className="bg-white p-6 rounded shadow w-full max-w-sm">
               <h2 className="text-xl font-bold mb-4 text-center">Bill / Receipt</h2>
+              <div className="mb-2 text-xs text-gray-500">Bill ID: {bill.billId}</div>
               <div className="mb-2 text-sm">{bill.time}</div>
               <table className="w-full mb-4 text-sm">
                 <thead>

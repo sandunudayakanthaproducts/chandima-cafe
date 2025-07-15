@@ -7,6 +7,7 @@ import liquorRoutes from './routes/liquor.js';
 import inventoryRoutes from './routes/inventory.js';
 import transferRoutes from './routes/transfer.js';
 import saleRoutes from './routes/sale.js';
+import billRoutes from './routes/bill.js';
 
 config();
 
@@ -27,6 +28,7 @@ app.use('/api/liquor', liquorRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/transfer', transferRoutes);
 app.use('/api/sale', saleRoutes);
+app.use('/api/bill', billRoutes);
 
 app.get('/', (req, res) => {
   res.send('Bar Management System API');

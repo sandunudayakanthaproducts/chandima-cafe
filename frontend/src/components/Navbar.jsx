@@ -15,12 +15,13 @@ const Navbar = () => {
 
   return (
     <nav className="bg-blue-700 text-white px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-8">
         <span className="font-bold text-lg">Bar Management</span>
         <Link to="/dashboard" className="hover:underline">Dashboard</Link>
         <Link to="/inventory" className="hover:underline">Inventory</Link>
         <Link to="/transfer" className="hover:underline">Transfer</Link>
         <Link to="/sales" className="hover:underline">Sales</Link>
+        <Link to="/bill-history" className="hover:underline">Bill History</Link>
         <Link to="/reports" className="hover:underline">Reports</Link>
         {user.role === "admin" && (
           <Link to="/user-management" className="hover:underline">User Management</Link>

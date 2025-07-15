@@ -28,4 +28,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+// List all unique bills
+router.get('/bills', async (req, res) => {
+  try {
+    const bills = await Sale.aggregate([
+      { $match: { billId: { $exists: true, $ne: null } } },
+      { $group: { _id: "$billId", count: { $sum: 1 }, total: { $sum: "$price" }, timestamp: { $first: "$timestamp" } } },
+      { $sort: { timestamp: -1 } }
+    ]);
+    res.json(bills);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all sales for a given billId
+router.get('/bill/:billId', async (req, res) => {
+  try {
+    const sales = await Sale.find({ billId: req.params.billId }).populate('liquor');
+    res.json(sales);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 
