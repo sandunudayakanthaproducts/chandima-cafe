@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 
-const BillHistory = () => {
+const BillHistoryWorker = () => {
   const [bills, setBills] = useState([]);
-  const [selectedBill, setSelectedBill] = useState(null);
-  const [billSales, setBillSales] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [filterStart, setFilterStart] = useState("");
   const [filterEnd, setFilterEnd] = useState("");
   const [filteredBills, setFilteredBills] = useState([]);
@@ -14,41 +10,23 @@ const BillHistory = () => {
   const [todaySummary, setTodaySummary] = useState(null);
   const [brandSummary, setBrandSummary] = useState([]);
   const [shotSizes, setShotSizes] = useState([]);
-  const [inventoryStore1, setInventoryStore1] = useState([]);
-  const [inventoryStore2, setInventoryStore2] = useState([]);
-
-  const fetchBills = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/bill");
-      const data = await res.json();
-      setBills(data);
-    } catch (err) {
-      setError("Failed to fetch bills");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchInventories = async () => {
-    try {
-      const [res1, res2] = await Promise.all([
-        fetch("/api/inventory?store=1"),
-        fetch("/api/inventory?store=2"),
-      ]);
-      const data1 = await res1.json();
-      const data2 = await res2.json();
-      setInventoryStore1(data1);
-      setInventoryStore2(data2);
-    } catch (err) {
-      // ignore errors for now
-    }
-  };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const fetchBills = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/bill");
+        const data = await res.json();
+        setBills(data);
+      } catch (err) {
+        setError("Failed to fetch bills");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchBills();
-    fetchInventories();
-    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -68,7 +46,6 @@ const BillHistory = () => {
         if (!billDate) return false;
         if (start && billDate < start) return false;
         if (end) {
-          // Include the end date's entire day
           const endOfDay = new Date(end);
           endOfDay.setHours(23,59,59,999);
           if (billDate > endOfDay) return false;
@@ -103,7 +80,6 @@ const BillHistory = () => {
     });
     setFilteredBills(todayBills);
     setShowingToday(true);
-    // Calculate summary
     let totalSales = 0;
     let totalBottles = 0;
     let totalShots = 0;
@@ -131,43 +107,8 @@ const BillHistory = () => {
       });
     });
     setTodaySummary({ totalSales, totalBottles, totalShots });
-    // Convert brandMap to array for rendering
     setBrandSummary(Object.entries(brandMap).map(([brand, vals]) => ({ brand, ...vals })));
     setShotSizes(Array.from(shotSizeSet).sort((a, b) => a - b));
-  };
-
-  const viewBill = async (billId) => {
-    setSelectedBill(billId);
-    setBillSales([]);
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/bill/${billId}`);
-      const data = await res.json();
-      setBillSales(data?.items || []);
-    } catch (err) {
-      setError("Failed to fetch bill details");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteBill = async (billId) => {
-    if (!window.confirm("Are you sure you want to delete this bill? This action cannot be undone.")) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/bill/${billId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Failed to delete bill");
-      }
-      setBills(prev => prev.filter(b => b.billId !== billId));
-      if (selectedBill === billId) setSelectedBill(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -176,7 +117,6 @@ const BillHistory = () => {
       <div className="p-8 max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Bill History</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
-        {/* Date Filter */}
         <div className="flex flex-wrap gap-4 items-end mb-6">
           <div>
             <label className="block text-xs font-semibold mb-1">Start Date</label>
@@ -229,7 +169,7 @@ const BillHistory = () => {
             {brandSummary.length > 0 && (
               <div className="mt-4">
                 <div className="font-semibold mb-2 text-green-900">Breakdown by Brand:</div>
-                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                <table className="min-w-full bg-white border rounded shadow text-sm">
                   <thead>
                     <tr className="bg-green-100">
                       <th className="py-2 px-4 border">Brand</th>
@@ -257,34 +197,6 @@ const BillHistory = () => {
                 </table>
               </div>
             )}
-            {/* Inventory left in both stores */}
-            <div className="mt-4">
-              <div className="font-semibold mb-2 text-blue-900">Current Inventory (Bottles & Open Volume Left)</div>
-              <table className="min-w-full bg-white border rounded shadow text-sm">
-                <thead>
-                  <tr className="bg-blue-100">
-                    <th className="py-2 px-4 border">Brand</th>
-                    <th className="py-2 px-4 border">Store</th>
-                    <th className="py-2 px-4 border">Bottles Left</th>
-                    <th className="py-2 px-4 border">Open Volume (ml)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[1,2].map(store => {
-                    const inv = store === 1 ? inventoryStore1 : inventoryStore2;
-                    const safeInv = inv.filter(row => row.liquor);
-                    return safeInv.map((row, idx) => (
-                      <tr key={store + '-' + row.liquor._id} className="text-center">
-                        <td className="py-1 px-2 border">{row.liquor.brand}</td>
-                        <td className="py-1 px-2 border">Store {store}</td>
-                        <td className="py-1 px-2 border">{row.bottles}</td>
-                        <td className="py-1 px-2 border">{row.openVolume || 0}</td>
-                      </tr>
-                    ));
-                  })}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
         <div className="overflow-x-auto mb-8">
@@ -295,7 +207,6 @@ const BillHistory = () => {
                 <th className="py-2 px-4 border">Total</th>
                 <th className="py-2 px-4 border">Date</th>
                 <th className="py-2 px-4 border">Items</th>
-                <th className="py-2 px-4 border">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -327,15 +238,6 @@ const BillHistory = () => {
                         </tbody>
                       </table>
                     </td>
-                    <td className="py-2 px-4 border align-top">
-                      <button
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                        onClick={() => deleteBill(bill.billId)}
-                        disabled={loading}
-                      >
-                        Delete
-                      </button>
-                    </td>
                   </tr>
                 </React.Fragment>
               ))}
@@ -347,4 +249,4 @@ const BillHistory = () => {
   );
 };
 
-export default BillHistory; 
+export default BillHistoryWorker; 

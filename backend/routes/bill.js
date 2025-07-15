@@ -45,10 +45,18 @@ router.post('/', async (req, res) => {
   }
 });
 
-// List all bills
+// List all bills (optionally filter by month)
 router.get('/', async (req, res) => {
   try {
-    const bills = await Bill.find().sort({ time: -1 });
+    const { month } = req.query; // e.g., '2024-06'
+    let query = {};
+    if (month) {
+      const [year, mon] = month.split('-');
+      const start = new Date(year, mon - 1, 1);
+      const end = new Date(year, mon, 1);
+      query.time = { $gte: start, $lt: end };
+    }
+    const bills = await Bill.find(query).sort({ time: -1 });
     res.json(bills);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

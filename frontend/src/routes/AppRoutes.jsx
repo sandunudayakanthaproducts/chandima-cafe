@@ -9,6 +9,8 @@ import Reports from "../pages/Reports";
 import LiquorAdd from "../pages/LiquorAdd";
 import UserManagement from "../pages/UserManagement";
 import BillHistory from "../pages/BillHistory";
+import MonthlyReport from "../pages/MonthlyReport";
+import BillHistoryWorker from "../pages/BillHistoryWorker";
 import { UserProvider, useUser } from "../context/UserContext";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -35,7 +37,9 @@ const AppRoutes = () => (
         <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin']}><Reports /></ProtectedRoute>} />
         <Route path="/liquor-add" element={<ProtectedRoute allowedRoles={['admin']}><LiquorAdd /></ProtectedRoute>} />
         <Route path="/user-management" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
-        <Route path="/bill-history" element={<ProtectedRoute allowedRoles={['admin','worker']}><BillHistory /></ProtectedRoute>} />
+        <Route path="/bill-history" element={<ProtectedRoute allowedRoles={['admin']}><BillHistory /></ProtectedRoute>} />
+        <Route path="/monthly-report" element={<ProtectedRoute allowedRoles={['admin']}><MonthlyReport /></ProtectedRoute>} />
+        <Route path="/bill-history-worker" element={<ProtectedRoute allowedRoles={['admin','worker']}><BillHistoryWorker /></ProtectedRoute>} />
         <Route path="*" element={<Login />} />
       </Routes>
     </Router>
