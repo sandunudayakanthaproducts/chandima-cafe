@@ -15,6 +15,7 @@ const SHOT_SIZES = [25, 50, 100, 120, 180];
 
 const Sales = () => {
   const [inventory, setInventory] = useState([]);
+  const [foods, setFoods] = useState([]); // NEW
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [bill, setBill] = useState(null);
@@ -31,8 +32,16 @@ const Sales = () => {
     setInventory(data);
   };
 
+  // Fetch food items
+  const fetchFoods = async () => {
+    const res = await fetch("/api/food");
+    const data = await res.json();
+    setFoods(data);
+  };
+
   useEffect(() => {
     fetchInventory();
+    fetchFoods(); // NEW
     // Fetch restaurant details
     const fetchRestaurant = async () => {
       try {
@@ -91,6 +100,28 @@ const Sales = () => {
     });
   };
 
+  // Add food to bill
+  const addFoodToBill = (food) => {
+    setBillItems(prev => {
+      const idx = prev.findIndex(b => b.foodId === food._id && b.type === "food");
+      if (idx !== -1) {
+        // Increment qty
+        const updated = [...prev];
+        updated[idx].qty += 1;
+        updated[idx].price += food.price;
+        return updated;
+      }
+      return [...prev, {
+        itemId: `${food._id}-food`,
+        brand: food.name,
+        type: "food",
+        qty: 1,
+        price: food.price,
+        foodId: food._id
+      }];
+    });
+  };
+
   // Remove item from bill
   const removeBillItem = (itemId) => {
     setBillItems(prev => prev.filter(b => b.itemId !== itemId));
@@ -98,7 +129,22 @@ const Sales = () => {
 
   // Update qty in bill
   const updateBillItemQty = (itemId, qty) => {
-    setBillItems(prev => prev.map(b => b.itemId === itemId ? { ...b, qty: qty < 1 ? 1 : qty, price: b.type === "bottle" ? b.qty * b.price / b.qty : b.qty * b.price / b.qty } : b));
+    setBillItems(prev => prev.map(b => {
+      if (b.itemId !== itemId) return b;
+      const newQty = qty < 1 ? 1 : qty;
+      let unitPrice = 0;
+      if (b.type === "bottle") {
+        const inv = inventory.find(i => i._id === b.inventoryId);
+        unitPrice = inv?.liquor?.price || 0;
+      } else if (b.type === "shot") {
+        const inv = inventory.find(i => i._id === b.inventoryId);
+        unitPrice = inv?.liquor?.shotPrices?.[b.shotSize] ? Number(inv.liquor.shotPrices[b.shotSize]) : 0;
+      } else if (b.type === "food") {
+        const food = foods.find(f => f._id === b.foodId);
+        unitPrice = food?.price || 0;
+      }
+      return { ...b, qty: newQty, price: unitPrice * newQty };
+    }));
   };
 
   // Process bill
@@ -170,6 +216,21 @@ const Sales = () => {
               billId
             })
           });
+        } else if (b.type === "food") {
+          // Log sale for food
+          await fetch(`/api/sale`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              foodId: b.foodId,
+              store: 2,
+              type: "food",
+              quantity: b.qty,
+              price: b.price,
+              user: "worker",
+              billId
+            })
+          });
         }
       }
       // Save the bill as a document
@@ -184,7 +245,8 @@ const Sales = () => {
             qty: b.qty,
             price: b.price,
             shotSize: b.shotSize,
-            liquorId: inventory.find(i => i._id === b.inventoryId)?.liquor?._id
+            liquorId: inventory.find(i => i._id === b.inventoryId)?.liquor?._id,
+            foodId: b.foodId // NEW
           })),
           total: billItems.reduce((sum, b) => sum + b.price, 0),
           time: new Date().toISOString(),
@@ -260,65 +322,104 @@ const Sales = () => {
           {search.trim() === "" ? (
             <div className="text-gray-500 text-center py-8">Type to search for products by brand or barcode.</div>
           ) : (
-            <table className="min-w-full bg-white border rounded shadow">
-              <thead>
-                <tr className="bg-blue-100">
-                  <th className="py-2 px-4 border">Brand</th>
-                  <th className="py-2 px-4 border">Bottle Size (ml)</th>
-                  <th className="py-2 px-4 border">Bottles</th>
-                  <th className="py-2 px-4 border">Open Volume (ml)</th>
-                  <th className="py-2 px-4 border">Shot Prices</th>
-                  <th className="py-2 px-4 border">Add Bottle</th>
-                  <th className="py-2 px-4 border">Add Shot</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventory.filter(item => {
-                  if (!item || !item.liquor) return false;
-                  const q = search.trim().toLowerCase();
-                  if (!q) return false;
-                  return (
-                    item.liquor.brand.toLowerCase().includes(q) ||
-                    (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
-                  );
-                }).map((item) => (
-                  <tr key={item._id} className="text-center">
-                    <td className="py-2 px-4 border">{item.liquor.brand}</td>
-                    <td className="py-2 px-4 border">{item.liquor.size}</td>
-                    <td className="py-2 px-4 border">{item.bottles}</td>
-                    <td className="py-2 px-4 border">{item.openVolume || 0}</td>
-                    <td className="py-2 px-4 border text-xs">
-                      {Object.keys(item.liquor.shotPrices || {}).map(size => (
-                        <div key={size}>
-                          {size}ml: {item.liquor.shotPrices[size]}
-                        </div>
-                      ))}
-                    </td>
-                    <td className="py-2 px-4 border">
-                      <button
-                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                        onClick={() => addBottleToBill(item)}
-                        disabled={loading || item.bottles < 1}
-                      >
-                        + Bottle
-                      </button>
-                    </td>
-                    <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
-                      {Object.keys(item.liquor.shotPrices || {}).map(size => (
+            <>
+              {/* Liquor Table */}
+              <table className="min-w-full bg-white border rounded shadow mb-6">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="py-2 px-4 border">Brand</th>
+                    <th className="py-2 px-4 border">Bottle Size (ml)</th>
+                    <th className="py-2 px-4 border">Bottles</th>
+                    <th className="py-2 px-4 border">Open Volume (ml)</th>
+                    <th className="py-2 px-4 border">Shot Prices</th>
+                    <th className="py-2 px-4 border">Add Bottle</th>
+                    <th className="py-2 px-4 border">Add Shot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventory.filter(item => {
+                    if (!item || !item.liquor) return false;
+                    const q = search.trim().toLowerCase();
+                    if (!q) return false;
+                    return (
+                      item.liquor.brand.toLowerCase().includes(q) ||
+                      (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
+                    );
+                  }).map((item) => (
+                    <tr key={item._id} className="text-center">
+                      <td className="py-2 px-4 border">{item.liquor.brand}</td>
+                      <td className="py-2 px-4 border">{item.liquor.size}</td>
+                      <td className="py-2 px-4 border">{item.bottles}</td>
+                      <td className="py-2 px-4 border">{item.openVolume || 0}</td>
+                      <td className="py-2 px-4 border text-xs">
+                        {Object.keys(item.liquor.shotPrices || {}).map(size => (
+                          <div key={size}>
+                            {size}ml: {item.liquor.shotPrices[size]}
+                          </div>
+                        ))}
+                      </td>
+                      <td className="py-2 px-4 border">
                         <button
-                          key={size}
-                          className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
-                          onClick={() => addShotToBill(item, Number(size))}
+                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                          onClick={() => addBottleToBill(item)}
+                          disabled={loading || item.bottles < 1}
+                        >
+                          + Bottle
+                        </button>
+                      </td>
+                      <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
+                        {Object.keys(item.liquor.shotPrices || {}).map(size => (
+                          <button
+                            key={size}
+                            className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
+                            onClick={() => addShotToBill(item, Number(size))}
+                            disabled={loading}
+                          >
+                            + {size}ml
+                          </button>
+                        ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {/* Food Table */}
+              <table className="min-w-full bg-white border rounded shadow">
+                <thead>
+                  <tr className="bg-green-100">
+                    <th className="py-2 px-4 border">Name</th>
+                    <th className="py-2 px-4 border">Price</th>
+                    <th className="py-2 px-4 border">Barcode</th>
+                    <th className="py-2 px-4 border">Add</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {foods.filter(f => {
+                    const q = search.trim().toLowerCase();
+                    if (!q) return false;
+                    return (
+                      f.name.toLowerCase().includes(q) ||
+                      (f.barcode && f.barcode.toLowerCase().includes(q))
+                    );
+                  }).map(f => (
+                    <tr key={f._id} className="text-center">
+                      <td className="py-2 px-4 border">{f.name}</td>
+                      <td className="py-2 px-4 border">{f.price}</td>
+                      <td className="py-2 px-4 border">{f.barcode}</td>
+                      <td className="py-2 px-4 border">
+                        <button
+                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                          onClick={() => addFoodToBill(f)}
                           disabled={loading}
                         >
-                          + {size}ml
+                          + Food
                         </button>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
         {/* Bill Builder Section */}
@@ -342,7 +443,7 @@ const Sales = () => {
                 {billItems.map(b => (
                   <tr key={b.itemId} className="text-center">
                     <td className="py-1 px-2 border">{b.brand}</td>
-                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : `${b.shotSize}ml Shot`}</td>
+                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? `${b.shotSize}ml Shot` : b.type === "food" ? "Portion" : ""}</td>
                     <td className="py-1 px-2 border">
                       <input
                         type="number"
@@ -353,7 +454,7 @@ const Sales = () => {
                         disabled={loading}
                       />
                     </td>
-                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : "ml"}</td>
+                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? "ml" : b.type === "food" ? "Portion" : ""}</td>
                     <td className="py-1 px-2 border">{b.price.toLocaleString()}</td>
                     <td className="py-1 px-2 border">
                       <button
@@ -412,7 +513,13 @@ const Sales = () => {
                   <tbody>
                     {bill.items.map((item, idx) => (
                       <tr key={idx}>
-                        <td>{item.brand} {item.type === "shot" ? `(${item.qty} x ${item.shotSize}ml)` : "(Bottle)"}</td>
+                        <td>{
+                          item.type === "shot"
+                            ? `${item.brand} (${item.qty} x ${item.shotSize}ml)`
+                            : item.type === "food"
+                            ? item.brand
+                            : item.brand
+                        }</td>
                         <td style={{textAlign:'right'}}>{item.qty}</td>
                         <td style={{textAlign:'right'}}>{item.price.toLocaleString()}</td>
                       </tr>

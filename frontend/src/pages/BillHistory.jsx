@@ -16,6 +16,7 @@ const BillHistory = () => {
   const [shotSizes, setShotSizes] = useState([]);
   const [inventoryStore1, setInventoryStore1] = useState([]);
   const [inventoryStore2, setInventoryStore2] = useState([]);
+  const [foodSummary, setFoodSummary] = useState([]);
 
   const fetchBills = async () => {
     setLoading(true);
@@ -91,6 +92,7 @@ const BillHistory = () => {
       setTodaySummary(null);
       setBrandSummary([]);
       setShotSizes([]);
+      setFoodSummary([]);
       return;
     }
     const now = new Date();
@@ -109,6 +111,7 @@ const BillHistory = () => {
     let totalShots = 0;
     const brandMap = {};
     const shotSizeSet = new Set();
+    const foodMap = {};
     todayBills.forEach(bill => {
       totalSales += bill.total || 0;
       bill.items?.forEach(item => {
@@ -128,12 +131,18 @@ const BillHistory = () => {
             brandMap[item.brand].totalShotVolume += item.qty * item.shotSize;
           }
         }
+        if (item.type === 'food') {
+          if (!foodMap[item.brand]) foodMap[item.brand] = { qty: 0, total: 0 };
+          foodMap[item.brand].qty += item.qty;
+          foodMap[item.brand].total += item.price;
+        }
       });
     });
     setTodaySummary({ totalSales, totalBottles, totalShots });
     // Convert brandMap to array for rendering
     setBrandSummary(Object.entries(brandMap).map(([brand, vals]) => ({ brand, ...vals })));
     setShotSizes(Array.from(shotSizeSet).sort((a, b) => a - b));
+    setFoodSummary(Object.entries(foodMap).map(([name, vals]) => ({ name, ...vals })));
   };
 
   const viewBill = async (billId) => {
@@ -257,6 +266,29 @@ const BillHistory = () => {
                 </table>
               </div>
             )}
+            {foodSummary.length > 0 && (
+              <div className="mt-4">
+                <div className="font-semibold mb-2 text-yellow-900">Food Sales Summary:</div>
+                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                  <thead>
+                    <tr className="bg-yellow-100">
+                      <th className="py-2 px-4 border">Food Item</th>
+                      <th className="py-2 px-4 border">Total Portions Sold</th>
+                      <th className="py-2 px-4 border">Total Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {foodSummary.map((row, idx) => (
+                      <tr key={idx} className="text-center">
+                        <td className="py-1 px-2 border font-semibold">{row.name}</td>
+                        <td className="py-1 px-2 border">{row.qty}</td>
+                        <td className="py-1 px-2 border">{row.total.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             {/* Inventory left in both stores */}
             <div className="mt-4">
               <div className="font-semibold mb-2 text-blue-900">Current Inventory (Bottles & Open Volume Left)</div>
@@ -319,7 +351,7 @@ const BillHistory = () => {
                           {bill.items?.map((item, idx) => (
                             <tr key={idx} className="text-center">
                               <td className="py-1 px-2 border">{item.brand || "-"}</td>
-                              <td className="py-1 px-2 border">{item.type === "bottle" ? "Bottle" : `${item.shotSize}ml Shot`}</td>
+                              <td className="py-1 px-2 border">{item.type === "bottle" ? "Bottle" : item.type === "shot" ? `${item.shotSize}ml Shot` : item.type === "food" ? "Portion" : ""}</td>
                               <td className="py-1 px-2 border">{item.qty}</td>
                               <td className="py-1 px-2 border">{item.price?.toLocaleString()}</td>
                             </tr>

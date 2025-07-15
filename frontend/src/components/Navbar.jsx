@@ -33,6 +33,9 @@ const Navbar = () => {
           <Link to="/user-management" className="hover:underline">User Management</Link>
         )}
         {user.role === "admin" && (
+          <Link to="/food-management" className="hover:underline">Food Management</Link>
+        )}
+        {user.role === "admin" && (
           <Link to="/restaurant-details" className="hover:underline">Restaurant Details</Link>
         )}
         {user.role === "admin" && (

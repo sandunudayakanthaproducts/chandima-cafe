@@ -9,6 +9,7 @@ import transferRoutes from './routes/transfer.js';
 import saleRoutes from './routes/sale.js';
 import billRoutes from './routes/bill.js';
 import restaurantRoutes from './routes/restaurant.js';
+import foodRoutes from './routes/food.js';
 
 config();
 
@@ -31,6 +32,7 @@ app.use('/api/transfer', transferRoutes);
 app.use('/api/sale', saleRoutes);
 app.use('/api/bill', billRoutes);
 app.use('/api/restaurant', restaurantRoutes);
+app.use('/api/food', foodRoutes);
 
 app.get('/', (req, res) => {
   res.send('Bar Management System API');
