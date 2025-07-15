@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 function generateBillId() {
   return (
@@ -18,6 +20,8 @@ const Sales = () => {
   const [loading, setLoading] = useState(false);
   const [billItems, setBillItems] = useState([]); // {itemId, brand, type, qty, price, inventoryId, shotSize}
   const [search, setSearch] = useState("");
+  const [restaurant, setRestaurant] = useState({ name: '', address: '', phone: '', email: '' });
+  const receiptRef = useRef();
 
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
@@ -28,6 +32,16 @@ const Sales = () => {
 
   useEffect(() => {
     fetchInventory();
+    // Fetch restaurant details
+    const fetchRestaurant = async () => {
+      try {
+        const res = await fetch('/api/restaurant');
+        if (!res.ok) return;
+        const data = await res.json();
+        setRestaurant(data);
+      } catch {}
+    };
+    fetchRestaurant();
   }, []);
 
   // Add bottle to bill
@@ -195,6 +209,32 @@ const Sales = () => {
   // Bill modal close
   const closeBill = () => setBill(null);
 
+  const handlePrint = () => {
+    const printContents = receiptRef.current.innerHTML;
+    const win = window.open('', '', 'width=600,height=800');
+    win.document.write('<html><head><title>Print Receipt</title>');
+    win.document.write('<style>body{font-family:sans-serif;}@media print{button{display:none!important;}}</style>');
+    win.document.write('</head><body>');
+    win.document.write(printContents);
+    win.document.write('</body></html>');
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 500);
+  };
+
+  const handleDownloadPDF = async () => {
+    const input = receiptRef.current;
+    const canvas = await html2canvas(input, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth - 40;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+    pdf.save(`receipt-${bill.billId || Date.now()}.pdf`);
+  };
+
   return (
     <>
       <Navbar />
@@ -339,28 +379,45 @@ const Sales = () => {
         {bill && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
             <div className="bg-white p-6 rounded shadow w-full max-w-sm">
-              <h2 className="text-xl font-bold mb-4 text-center">Bill / Receipt</h2>
-              <div className="mb-2 text-xs text-gray-500">Bill ID: {bill.billId}</div>
-              <div className="mb-2 text-sm">{bill.time}</div>
-              <table className="w-full mb-4 text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left">Item</th>
-                    <th className="text-right">Qty</th>
-                    <th className="text-right">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td>{item.brand} {item.type === "shot" ? `(${item.qty} x ${item.shotSize}ml)` : "(Bottle)"}</td>
-                      <td className="text-right">{item.qty}</td>
-                      <td className="text-right">{item.price.toLocaleString()}</td>
+              <div className="flex justify-end gap-2 mb-2 print:hidden">
+                <button onClick={handlePrint} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Print</button>
+                <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Download PDF</button>
+              </div>
+              <div ref={receiptRef}>
+                <h2 className="text-xl font-bold mb-2 text-center">Bill / Receipt</h2>
+                <div className="border-t-2 border-gray-500 my-2"></div>
+                {/* Restaurant details below heading */}
+                <div className="mb-2 text-center">
+                  <div className="font-bold text-lg">{restaurant.name}</div>
+                  <div className="text-xs text-gray-700 whitespace-pre-line">{restaurant.address}</div>
+                  <div className="text-xs text-gray-700">{restaurant.phone}</div>
+                  <div className="text-xs text-gray-700">{restaurant.email}</div>
+                </div>
+                <div className="border-t-2 border-gray-500 my-2"></div>
+                <div className="mb-2 text-xs text-gray-500">Bill ID: {bill.billId}</div>
+                <div className="mb-2 text-sm">{bill.time}</div>
+                <div className="border-t-2 border-gray-500 my-2"></div>
+                <table className="w-full mb-4 text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left">Item</th>
+                      <th className="text-right">Qty</th>
+                      <th className="text-right">Price</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="font-bold text-right mb-4">Total: {bill.total.toLocaleString()}</div>
+                  </thead>
+                  <tbody>
+                    {bill.items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.brand} {item.type === "shot" ? `(${item.qty} x ${item.shotSize}ml)` : "(Bottle)"}</td>
+                        <td className="text-right">{item.qty}</td>
+                        <td className="text-right">{item.price.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="border-t-2 border-gray-500 my-2"></div>
+                <div className="font-bold text-right mb-4">Total: {bill.total.toLocaleString()}</div>
+              </div>
               <div className="flex justify-end gap-2">
                 <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded">Close</button>
               </div>
