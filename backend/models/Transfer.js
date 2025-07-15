@@ -2,11 +2,10 @@ import mongoose from 'mongoose';
 
 const transferSchema = new mongoose.Schema({
   liquor: { type: mongoose.Schema.Types.ObjectId, ref: 'Liquor', required: true },
-  fromStore: { type: Number, required: true },
-  toStore: { type: Number, required: true },
+  fromStore: { type: Number, default: 1 },
+  toStore: { type: Number, default: 2 },
   quantity: { type: Number, required: true },
-  timestamp: { type: Date, default: Date.now },
-  user: { type: String },
-});
+  user: { type: String }
+}, { timestamps: true }); // Add timestamps
 
 export default mongoose.model('Transfer', transferSchema); 

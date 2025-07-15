@@ -23,6 +23,7 @@ const Inventory = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [customShotSizes, setCustomShotSizes] = useState([]);
+  const [showTransferHistory, setShowTransferHistory] = useState(false); // NEW
 
   // Fetch inventory for Store 1 and Store 2
   const fetchInventories = async () => {
@@ -217,7 +218,15 @@ const Inventory = () => {
       <Navbar />
       <div className="p-8">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">Inventory</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold">Inventory</h1>
+            <button
+              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              onClick={() => setShowTransferHistory(true)}
+            >
+              Transfer History
+            </button>
+          </div>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
             onClick={() => { setShowAddModal(true); setForm({ brand: "", size: "", barcode: "", price: "", bottles: "", shotPrices: {} }); setCustomShotSizes([]); }}
@@ -505,9 +514,116 @@ const Inventory = () => {
             </div>
           </div>
         )}
+        {/* Transfer History Modal */}
+        {showTransferHistory && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+            <div className="bg-white p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Transfer History</h2>
+                <button className="text-gray-600 text-2xl font-bold" onClick={() => setShowTransferHistory(false)}>&times;</button>
+              </div>
+              {/* TransferHistory component or logic goes here */}
+              {/* You can mount your existing Transfer history modal/component here */}
+              <TransferHistoryModal onClose={() => setShowTransferHistory(false)} />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
 };
 
-export default Inventory; 
+export default Inventory;
+
+const TransferHistoryModal = ({ onClose }) => {
+  const [transfers, setTransfers] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+  const [deletingId, setDeletingId] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchTransfers = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/transfer");
+        if (!res.ok) throw new Error("Failed to fetch transfer history");
+        const data = await res.json();
+        setTransfers(data.reverse()); // Most recent first
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransfers();
+  }, []);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this transfer record?")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/transfer/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete transfer");
+      setTransfers(prev => prev.filter(t => t._id !== id));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Transfer History</h2>
+        <button className="text-gray-600 text-2xl font-bold" onClick={onClose}>&times;</button>
+      </div>
+      {loading ? (
+        <div className="text-gray-500">Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border rounded shadow text-sm">
+            <thead>
+              <tr className="bg-blue-100">
+                <th className="py-2 px-4 border">Date</th>
+                <th className="py-2 px-4 border">Brand</th>
+                <th className="py-2 px-4 border">Size (ml)</th>
+                <th className="py-2 px-4 border">Quantity</th>
+                <th className="py-2 px-4 border">From Store</th>
+                <th className="py-2 px-4 border">To Store</th>
+                <th className="py-2 px-4 border">User</th>
+                <th className="py-2 px-4 border">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transfers.map((t, idx) => (
+                <tr key={t._id || idx} className="text-center">
+                  <td className="py-2 px-4 border">{t.createdAt ? new Date(t.createdAt).toLocaleString() : "-"}</td>
+                  <td className="py-2 px-4 border">{t.liquor?.brand || "-"}</td>
+                  <td className="py-2 px-4 border">{t.liquor?.size || "-"}</td>
+                  <td className="py-2 px-4 border">{t.quantity}</td>
+                  <td className="py-2 px-4 border">{t.fromStore || 1}</td>
+                  <td className="py-2 px-4 border">{t.toStore || 2}</td>
+                  <td className="py-2 px-4 border">{t.user || "-"}</td>
+                  <td className="py-2 px-4 border">
+                    <button
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      onClick={() => handleDelete(t._id)}
+                      disabled={deletingId === t._id}
+                    >
+                      {deletingId === t._id ? "Deleting..." : "Delete"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <button className="mt-4 bg-gray-400 text-white px-4 py-2 rounded" onClick={onClose}>Close</button>
+    </div>
+  );
+}; 

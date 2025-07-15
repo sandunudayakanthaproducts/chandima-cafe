@@ -44,7 +44,8 @@ const AppRoutes = () => (
         <Route path="/bill-history-worker" element={<ProtectedRoute allowedRoles={['admin','worker']}><BillHistoryWorker /></ProtectedRoute>} />
         <Route path="/restaurant-details" element={<ProtectedRoute allowedRoles={['admin']}><RestaurantDetails /></ProtectedRoute>} />
         <Route path="/food-management" element={<ProtectedRoute allowedRoles={['admin']}><FoodManagement /></ProtectedRoute>} />
-        <Route path="*" element={<Login />} />
+        <Route path="/" element={<Navigate to="/sales" replace />} />
+        <Route path="*" element={<Navigate to="/sales" replace />} />
       </Routes>
     </Router>
   </UserProvider>

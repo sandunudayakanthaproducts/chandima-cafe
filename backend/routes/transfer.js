@@ -46,4 +46,15 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Delete a transfer
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await Transfer.findByIdAndDelete(req.params.id);
+    if (!result) return res.status(404).json({ message: 'Transfer not found' });
+    res.json({ message: 'Transfer deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 
