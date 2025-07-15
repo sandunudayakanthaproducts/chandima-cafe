@@ -33,6 +33,9 @@ const Navbar = () => {
           <Link to="/user-management" className="hover:underline">User Management</Link>
         )}
         {user.role === "admin" && (
+          <Link to="/restaurant-details" className="hover:underline">Restaurant Details</Link>
+        )}
+        {user.role === "admin" && (
           <span className="ml-2 px-2 py-1 bg-yellow-500 text-xs rounded">Admin</span>
         )}
         {user.role === "worker" && (
