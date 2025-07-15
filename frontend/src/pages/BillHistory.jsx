@@ -7,6 +7,13 @@ const BillHistory = () => {
   const [billSales, setBillSales] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [filterStart, setFilterStart] = useState("");
+  const [filterEnd, setFilterEnd] = useState("");
+  const [filteredBills, setFilteredBills] = useState([]);
+  const [showingToday, setShowingToday] = useState(false);
+  const [todaySummary, setTodaySummary] = useState(null);
+  const [brandSummary, setBrandSummary] = useState([]);
+  const [shotSizes, setShotSizes] = useState([]);
 
   useEffect(() => {
     const fetchBills = async () => {
@@ -24,6 +31,91 @@ const BillHistory = () => {
     fetchBills();
   }, []);
 
+  useEffect(() => {
+    setFilteredBills(bills);
+  }, [bills]);
+
+  const handleFilter = () => {
+    if (!filterStart && !filterEnd) {
+      setFilteredBills(bills);
+      return;
+    }
+    const start = filterStart ? new Date(filterStart) : null;
+    const end = filterEnd ? new Date(filterEnd) : null;
+    setFilteredBills(
+      bills.filter(bill => {
+        const billDate = bill.time ? new Date(bill.time) : null;
+        if (!billDate) return false;
+        if (start && billDate < start) return false;
+        if (end) {
+          // Include the end date's entire day
+          const endOfDay = new Date(end);
+          endOfDay.setHours(23,59,59,999);
+          if (billDate > endOfDay) return false;
+        }
+        return true;
+      })
+    );
+  };
+
+  const handleClear = () => {
+    setFilterStart("");
+    setFilterEnd("");
+    setFilteredBills(bills);
+  };
+
+  const handleShowToday = () => {
+    if (showingToday) {
+      setFilteredBills(bills);
+      setShowingToday(false);
+      setTodaySummary(null);
+      setBrandSummary([]);
+      setShotSizes([]);
+      return;
+    }
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const todayBills = bills.filter(bill => {
+      const billDate = bill.time ? new Date(bill.time) : null;
+      if (!billDate) return false;
+      return billDate >= start && billDate <= end;
+    });
+    setFilteredBills(todayBills);
+    setShowingToday(true);
+    // Calculate summary
+    let totalSales = 0;
+    let totalBottles = 0;
+    let totalShots = 0;
+    const brandMap = {};
+    const shotSizeSet = new Set();
+    todayBills.forEach(bill => {
+      totalSales += bill.total || 0;
+      bill.items?.forEach(item => {
+        if (!item.brand) return;
+        if (!brandMap[item.brand]) brandMap[item.brand] = { bottles: 0, shots: 0, shotVolumes: {}, totalShotVolume: 0 };
+        if (item.type === 'bottle') {
+          totalBottles += item.qty;
+          brandMap[item.brand].bottles += item.qty;
+        }
+        if (item.type === 'shot') {
+          totalShots += item.qty;
+          brandMap[item.brand].shots += item.qty;
+          if (item.shotSize) {
+            shotSizeSet.add(item.shotSize);
+            if (!brandMap[item.brand].shotVolumes[item.shotSize]) brandMap[item.brand].shotVolumes[item.shotSize] = 0;
+            brandMap[item.brand].shotVolumes[item.shotSize] += item.qty;
+            brandMap[item.brand].totalShotVolume += item.qty * item.shotSize;
+          }
+        }
+      });
+    });
+    setTodaySummary({ totalSales, totalBottles, totalShots });
+    // Convert brandMap to array for rendering
+    setBrandSummary(Object.entries(brandMap).map(([brand, vals]) => ({ brand, ...vals })));
+    setShotSizes(Array.from(shotSizeSet).sort((a, b) => a - b));
+  };
+
   const viewBill = async (billId) => {
     setSelectedBill(billId);
     setBillSales([]);
@@ -39,76 +131,169 @@ const BillHistory = () => {
     }
   };
 
+  const deleteBill = async (billId) => {
+    if (!window.confirm("Are you sure you want to delete this bill? This action cannot be undone.")) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/bill/${billId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete bill");
+      }
+      setBills(prev => prev.filter(b => b.billId !== billId));
+      if (selectedBill === billId) setSelectedBill(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Navbar />
       <div className="p-8 max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Bill History</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
+        {/* Date Filter */}
+        <div className="flex flex-wrap gap-4 items-end mb-6">
+          <div>
+            <label className="block text-xs font-semibold mb-1">Start Date</label>
+            <input
+              type="date"
+              className="border rounded px-2 py-1"
+              value={filterStart}
+              onChange={e => setFilterStart(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1">End Date</label>
+            <input
+              type="date"
+              className="border rounded px-2 py-1"
+              value={filterEnd}
+              onChange={e => setFilterEnd(e.target.value)}
+            />
+          </div>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            onClick={handleFilter}
+            disabled={loading}
+          >
+            Filter
+          </button>
+          <button
+            className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+            onClick={handleClear}
+            disabled={loading || (!filterStart && !filterEnd)}
+          >
+            Clear
+          </button>
+          <button
+            className={`px-4 py-2 rounded ${showingToday ? 'bg-green-700 text-white' : 'bg-green-500 text-white hover:bg-green-600'}`}
+            onClick={handleShowToday}
+            disabled={loading}
+          >
+            {showingToday ? 'Show All' : 'Show Today'}
+          </button>
+        </div>
+        {showingToday && todaySummary && (
+          <div className="mb-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded flex flex-wrap gap-8 items-center">
+              <div className="font-semibold text-green-900">Today's Sales Summary:</div>
+              <div className="text-green-800">Total Sales: <span className="font-bold">{todaySummary.totalSales.toLocaleString()}</span></div>
+              <div className="text-green-800">Total Bottles Sold: <span className="font-bold">{todaySummary.totalBottles}</span></div>
+              <div className="text-green-800">Total Shots Sold: <span className="font-bold">{todaySummary.totalShots}</span></div>
+            </div>
+            {brandSummary.length > 0 && (
+              <div className="mt-4">
+                <div className="font-semibold mb-2 text-green-900">Breakdown by Brand:</div>
+                <table className="min-w-full bg-white border rounded shadow text-sm">
+                  <thead>
+                    <tr className="bg-green-100">
+                      <th className="py-2 px-4 border">Brand</th>
+                      <th className="py-2 px-4 border">Bottles Sold</th>
+                      <th className="py-2 px-4 border">Shots Sold</th>
+                      {shotSizes.map(size => (
+                        <th key={size} className="py-2 px-4 border">{size}ml Shots</th>
+                      ))}
+                      <th className="py-2 px-4 border">Total Shot Volume (ml)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {brandSummary.map((row, idx) => (
+                      <tr key={idx} className="text-center">
+                        <td className="py-1 px-2 border font-semibold">{row.brand}</td>
+                        <td className="py-1 px-2 border">{row.bottles}</td>
+                        <td className="py-1 px-2 border">{row.shots}</td>
+                        {shotSizes.map(size => (
+                          <td key={size} className="py-1 px-2 border">{row.shotVolumes && row.shotVolumes[size] ? row.shotVolumes[size] : 0}</td>
+                        ))}
+                        <td className="py-1 px-2 border font-bold">{row.totalShotVolume || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
         <div className="overflow-x-auto mb-8">
           <table className="min-w-full bg-white border rounded shadow text-sm">
             <thead>
               <tr className="bg-blue-100">
                 <th className="py-2 px-4 border">Bill ID</th>
                 <th className="py-2 px-4 border">Total</th>
-                <th className="py-2 px-4 border">Items</th>
                 <th className="py-2 px-4 border">Date</th>
+                <th className="py-2 px-4 border">Items</th>
                 <th className="py-2 px-4 border">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {bills.map(bill => (
-                <tr key={bill.billId} className="text-center">
-                  <td className="py-2 px-4 border font-mono text-xs">{bill.billId}</td>
-                  <td className="py-2 px-4 border">{bill.total?.toLocaleString()}</td>
-                  <td className="py-2 px-4 border">{bill.items?.length}</td>
-                  <td className="py-2 px-4 border">{bill.time ? new Date(bill.time).toLocaleString() : "-"}</td>
-                  <td className="py-2 px-4 border">
-                    <button
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      onClick={() => viewBill(bill.billId)}
-                      disabled={loading}
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
+              {filteredBills.map(bill => (
+                <React.Fragment key={bill.billId}>
+                  <tr className="text-center bg-gray-50">
+                    <td className="py-2 px-4 border font-mono text-xs align-top">{bill.billId}</td>
+                    <td className="py-2 px-4 border align-top">{bill.total?.toLocaleString()}</td>
+                    <td className="py-2 px-4 border align-top">{bill.time ? new Date(bill.time).toLocaleString() : "-"}</td>
+                    <td className="py-2 px-4 border align-top">
+                      <table className="w-full text-xs bg-white border rounded">
+                        <thead>
+                          <tr className="bg-blue-50">
+                            <th className="py-1 px-2 border">Brand</th>
+                            <th className="py-1 px-2 border">Type</th>
+                            <th className="py-1 px-2 border">Qty</th>
+                            <th className="py-1 px-2 border">Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bill.items?.map((item, idx) => (
+                            <tr key={idx} className="text-center">
+                              <td className="py-1 px-2 border">{item.brand || "-"}</td>
+                              <td className="py-1 px-2 border">{item.type === "bottle" ? "Bottle" : `${item.shotSize}ml Shot`}</td>
+                              <td className="py-1 px-2 border">{item.qty}</td>
+                              <td className="py-1 px-2 border">{item.price?.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
+                    <td className="py-2 px-4 border align-top">
+                      <button
+                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                        onClick={() => deleteBill(bill.billId)}
+                        disabled={loading}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
-        {selectedBill && (
-          <div className="mb-8 p-4 border rounded bg-gray-50">
-            <h2 className="text-lg font-bold mb-2">Bill Details</h2>
-            <div className="mb-2 text-xs text-gray-500">Bill ID: {selectedBill}</div>
-            <table className="min-w-full bg-white border rounded shadow text-sm mb-2">
-              <thead>
-                <tr className="bg-blue-50">
-                  <th className="py-1 px-2 border">Brand</th>
-                  <th className="py-1 px-2 border">Type</th>
-                  <th className="py-1 px-2 border">Qty</th>
-                  <th className="py-1 px-2 border">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {billSales.map((s, idx) => (
-                  <tr key={idx} className="text-center">
-                    <td className="py-1 px-2 border">{s.brand || "-"}</td>
-                    <td className="py-1 px-2 border">{s.type === "bottle" ? "Bottle" : `${s.shotSize}ml Shot`}</td>
-                    <td className="py-1 px-2 border">{s.qty}</td>
-                    <td className="py-1 px-2 border">{s.price?.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button
-              className="bg-gray-400 text-white px-4 py-2 rounded mt-2"
-              onClick={() => setSelectedBill(null)}
-            >
-              Close
-            </button>
-          </div>
-        )}
       </div>
     </>
   );

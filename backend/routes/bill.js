@@ -65,4 +65,15 @@ router.get('/:billId', async (req, res) => {
   }
 });
 
+// Delete bill by billId
+router.delete('/:billId', async (req, res) => {
+  try {
+    const deleted = await Bill.findOneAndDelete({ billId: req.params.billId });
+    if (!deleted) return res.status(404).json({ message: 'Bill not found' });
+    res.json({ message: 'Bill deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router; 
