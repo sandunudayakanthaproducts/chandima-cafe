@@ -16,6 +16,7 @@ const Inventory = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   // Fetch inventory for Store 1 and Store 2
   const fetchInventories = async () => {
@@ -217,6 +218,16 @@ const Inventory = () => {
         {error && <div className="text-red-500 mb-2">{error}</div>}
         {success && <div className="text-green-600 mb-2">{success}</div>}
         <div className="overflow-x-auto">
+          {/* Search input */}
+          <div className="mb-4 flex items-center gap-4">
+            <input
+              type="text"
+              className="border rounded px-3 py-2 w-full max-w-xs"
+              placeholder="Search by brand or barcode..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
           <table className="min-w-full bg-white border rounded shadow">
             <thead>
               <tr className="bg-blue-100">
@@ -230,7 +241,15 @@ const Inventory = () => {
               </tr>
             </thead>
             <tbody>
-              {inventory.map((row) => (
+              {inventory.filter(row => {
+                if (!row || !row.liquor) return false;
+                const q = search.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  row.liquor.brand.toLowerCase().includes(q) ||
+                  (row.liquor.barcode && row.liquor.barcode.toLowerCase().includes(q))
+                );
+              }).map((row) => (
                 <tr key={row._id} className="text-center">
                   <td className="py-2 px-4 border">{row.liquor.brand}</td>
                   <td className="py-2 px-4 border">{row.liquor.size}</td>
