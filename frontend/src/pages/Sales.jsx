@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import './SalesReceipt.css';
 
 function generateBillId() {
   return (
@@ -211,9 +212,9 @@ const Sales = () => {
 
   const handlePrint = () => {
     const printContents = receiptRef.current.innerHTML;
-    const win = window.open('', '', 'width=600,height=800');
+    const win = window.open('', '', 'width=400,height=800');
     win.document.write('<html><head><title>Print Receipt</title>');
-    win.document.write('<style>body{font-family:sans-serif;}@media print{button{display:none!important;}}</style>');
+    win.document.write('<style>body{font-family:sans-serif;}@media print{.receipt-area{width:58mm!important;max-width:58mm!important;font-size:11px;margin:0 auto;padding:0;box-shadow:none;}button{display:none!important;}}</style>');
     win.document.write('</head><body>');
     win.document.write(printContents);
     win.document.write('</body></html>');
@@ -226,12 +227,15 @@ const Sales = () => {
     const input = receiptRef.current;
     const canvas = await html2canvas(input, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth - 40;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+    // 58mm = ~164pt, set height long enough for receipt
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [58, 200] });
+    const pageWidth = 58;
+    const pageHeight = 200;
+    // scale image to fit width
+    const imgProps = pdf.getImageProperties(imgData);
+    const imgWidth = pageWidth - 4;
+    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+    pdf.addImage(imgData, 'PNG', 2, 2, imgWidth, imgHeight);
     pdf.save(`receipt-${bill.billId || Date.now()}.pdf`);
   };
 
@@ -383,40 +387,40 @@ const Sales = () => {
                 <button onClick={handlePrint} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Print</button>
                 <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Download PDF</button>
               </div>
-              <div ref={receiptRef}>
-                <h2 className="text-xl font-bold mb-2 text-center">Bill / Receipt</h2>
-                <div className="border-t-2 border-gray-500 my-2"></div>
+              <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif'}}>
+                <h2 style={{fontWeight:'bold',fontSize:'1.25rem',marginBottom:'0.5rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
+                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
                 {/* Restaurant details below heading */}
-                <div className="mb-2 text-center">
-                  <div className="font-bold text-lg">{restaurant.name}</div>
-                  <div className="text-xs text-gray-700 whitespace-pre-line">{restaurant.address}</div>
-                  <div className="text-xs text-gray-700">{restaurant.phone}</div>
-                  <div className="text-xs text-gray-700">{restaurant.email}</div>
+                <div style={{marginBottom:'0.5rem',textAlign:'center'}}>
+                  <div style={{fontWeight:'bold',fontSize:'1.1rem',lineHeight:1.3,padding:'0.2em 0'}}>{restaurant.name}</div>
+                  <div style={{fontSize:'0.75rem',color:'#333',whiteSpace:'pre-line'}}>{restaurant.address}</div>
+                  <div style={{fontSize:'0.75rem',color:'#333'}}>{restaurant.phone}</div>
+                  <div style={{fontSize:'0.75rem',color:'#333'}}>{restaurant.email}</div>
                 </div>
-                <div className="border-t-2 border-gray-500 my-2"></div>
-                <div className="mb-2 text-xs text-gray-500">Bill ID: {bill.billId}</div>
-                <div className="mb-2 text-sm">{bill.time}</div>
-                <div className="border-t-2 border-gray-500 my-2"></div>
-                <table className="w-full mb-4 text-sm">
+                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
+                <div style={{marginBottom:'0.5rem',fontSize:'0.75rem',color:'#555'}}>Bill ID: {bill.billId}</div>
+                <div style={{marginBottom:'0.5rem',fontSize:'0.9rem'}}>{bill.time}</div>
+                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
+                <table style={{width:'100%',marginBottom:'1rem',fontSize:'0.9rem'}}>
                   <thead>
-                    <tr className="border-b">
-                      <th className="text-left">Item</th>
-                      <th className="text-right">Qty</th>
-                      <th className="text-right">Price</th>
+                    <tr style={{borderBottom:'1px solid #bbb'}}>
+                      <th style={{textAlign:'left'}}>Item</th>
+                      <th style={{textAlign:'right'}}>Qty</th>
+                      <th style={{textAlign:'right'}}>Price</th>
                     </tr>
                   </thead>
                   <tbody>
                     {bill.items.map((item, idx) => (
                       <tr key={idx}>
                         <td>{item.brand} {item.type === "shot" ? `(${item.qty} x ${item.shotSize}ml)` : "(Bottle)"}</td>
-                        <td className="text-right">{item.qty}</td>
-                        <td className="text-right">{item.price.toLocaleString()}</td>
+                        <td style={{textAlign:'right'}}>{item.qty}</td>
+                        <td style={{textAlign:'right'}}>{item.price.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <div className="border-t-2 border-gray-500 my-2"></div>
-                <div className="font-bold text-right mb-4">Total: {bill.total.toLocaleString()}</div>
+                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
+                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1rem'}}>Total: {bill.total.toLocaleString()}</div>
               </div>
               <div className="flex justify-end gap-2">
                 <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded">Close</button>

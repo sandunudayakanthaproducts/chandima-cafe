@@ -19,16 +19,16 @@ const Navbar = () => {
         <span className="font-bold text-lg">Bar Management</span>
         <Link to="/dashboard" className="hover:underline">Dashboard</Link>
         <Link to="/inventory" className="hover:underline">Inventory</Link>
-        <Link to="/transfer" className="hover:underline">Transfer</Link>
+        
         <Link to="/sales" className="hover:underline">Sales</Link>
-        <Link to="/bill-history-worker" className="hover:underline">View Bills</Link>
+        
         {user.role === "admin" && (
           <Link to="/bill-history" className="hover:underline">Bill History</Link>
         )}
         {user.role === "admin" && (
           <Link to="/monthly-report" className="hover:underline">Monthly Report</Link>
         )}
-        <Link to="/reports" className="hover:underline">Reports</Link>
+       
         {user.role === "admin" && (
           <Link to="/user-management" className="hover:underline">User Management</Link>
         )}

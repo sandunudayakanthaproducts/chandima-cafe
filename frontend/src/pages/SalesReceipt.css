@@ -1,0 +1,25 @@
+.receipt-area, .receipt-area * {
+  background: #fff !important;
+  color: #000 !important;
+}
+.receipt-area {
+  width: 58mm;
+  max-width: 58mm;
+  font-size: 11px;
+  margin: 0 auto;
+  padding: 0;
+  box-shadow: none;
+  background: white;
+}
+@media print {
+  .receipt-area {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    font-size: 11px;
+    margin: 0 auto;
+    padding: 0;
+    box-shadow: none;
+    background: white !important;
+  }
+  button, .print\:hidden { display: none !important; }
+} 
