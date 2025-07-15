@@ -3,6 +3,11 @@ import Navbar from "../components/Navbar";
 
 const SHOT_SIZES = [25, 50, 100, 120, 180];
 
+// Helper to ensure only numbers (as string) are allowed in shot size input
+function sanitizeNumberInput(val) {
+  return val.replace(/[^0-9]/g, "");
+}
+
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
   const [store2Map, setStore2Map] = useState({});
@@ -17,6 +22,7 @@ const Inventory = () => {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [customShotSizes, setCustomShotSizes] = useState([]);
 
   // Fetch inventory for Store 1 and Store 2
   const fetchInventories = async () => {
@@ -154,6 +160,10 @@ const Inventory = () => {
       bottles: row.bottles,
       shotPrices: row.liquor.shotPrices || {},
     });
+    // Detect custom shot sizes for editing
+    const allSizes = Object.keys(row.liquor.shotPrices || {});
+    const custom = allSizes.filter(size => !SHOT_SIZES.includes(Number(size)));
+    setCustomShotSizes(custom);
     setShowEditModal(true);
   };
 
@@ -210,7 +220,7 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold">Inventory</h1>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            onClick={() => { setShowAddModal(true); setForm({ brand: "", size: "", barcode: "", price: "", bottles: "", shotPrices: {} }); }}
+            onClick={() => { setShowAddModal(true); setForm({ brand: "", size: "", barcode: "", price: "", bottles: "", shotPrices: {} }); setCustomShotSizes([]); }}
           >
             + Add Liquor to Store 1
           </button>
@@ -295,6 +305,7 @@ const Inventory = () => {
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Shot Prices (per size)</label>
+                  {/* Default sizes */}
                   {SHOT_SIZES.map(size => (
                     <div key={size} className="flex items-center gap-2 mb-1">
                       <span>{size}ml:</span>
@@ -307,6 +318,56 @@ const Inventory = () => {
                       />
                     </div>
                   ))}
+                  {/* Custom sizes */}
+                  {customShotSizes.map((size, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-1">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="border rounded px-2 py-1 w-20"
+                        placeholder="Size (ml)"
+                        value={size}
+                        min="1"
+                        onChange={e => {
+                          const newVal = sanitizeNumberInput(e.target.value);
+                          setCustomShotSizes(sizes => {
+                            const arr = [...sizes];
+                            arr[idx] = newVal;
+                            return arr;
+                          });
+                          // Move price if size changes
+                          const oldSize = size;
+                          if (form.shotPrices[oldSize] && newVal !== oldSize) {
+                            setForm(f => {
+                              const newPrices = { ...f.shotPrices };
+                              newPrices[newVal] = newPrices[oldSize];
+                              delete newPrices[oldSize];
+                              return { ...f, shotPrices: newPrices };
+                            });
+                          }
+                        }}
+                      />
+                      <span>ml:</span>
+                      <input
+                        type="number"
+                        className="border rounded px-2 py-1 w-24"
+                        value={form.shotPrices[size] || ""}
+                        min="0"
+                        placeholder="Price"
+                        onChange={e => handleShotPriceChange(size, e.target.value)}
+                      />
+                      <button type="button" className="text-red-600 font-bold px-2" onClick={() => {
+                        setCustomShotSizes(sizes => sizes.filter((_, i) => i !== idx));
+                        setForm(f => {
+                          const newPrices = { ...f.shotPrices };
+                          delete newPrices[size];
+                          return { ...f, shotPrices: newPrices };
+                        });
+                      }}>×</button>
+                    </div>
+                  ))}
+                  <button type="button" className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs mt-2" onClick={() => setCustomShotSizes(sizes => [...sizes, ""])}>+ Add Shot Size</button>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <button type="button" className="bg-gray-400 text-white px-4 py-2 rounded" onClick={() => setShowAddModal(false)}>Cancel</button>
@@ -344,6 +405,7 @@ const Inventory = () => {
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Shot Prices (per size)</label>
+                  {/* Default sizes */}
                   {SHOT_SIZES.map(size => (
                     <div key={size} className="flex items-center gap-2 mb-1">
                       <span>{size}ml:</span>
@@ -356,6 +418,56 @@ const Inventory = () => {
                       />
                     </div>
                   ))}
+                  {/* Custom sizes */}
+                  {customShotSizes.map((size, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-1">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="border rounded px-2 py-1 w-20"
+                        placeholder="Size (ml)"
+                        value={size}
+                        min="1"
+                        onChange={e => {
+                          const newVal = sanitizeNumberInput(e.target.value);
+                          setCustomShotSizes(sizes => {
+                            const arr = [...sizes];
+                            arr[idx] = newVal;
+                            return arr;
+                          });
+                          // Move price if size changes
+                          const oldSize = size;
+                          if (form.shotPrices[oldSize] && newVal !== oldSize) {
+                            setForm(f => {
+                              const newPrices = { ...f.shotPrices };
+                              newPrices[newVal] = newPrices[oldSize];
+                              delete newPrices[oldSize];
+                              return { ...f, shotPrices: newPrices };
+                            });
+                          }
+                        }}
+                      />
+                      <span>ml:</span>
+                      <input
+                        type="number"
+                        className="border rounded px-2 py-1 w-24"
+                        value={form.shotPrices[size] || ""}
+                        min="0"
+                        placeholder="Price"
+                        onChange={e => handleShotPriceChange(size, e.target.value)}
+                      />
+                      <button type="button" className="text-red-600 font-bold px-2" onClick={() => {
+                        setCustomShotSizes(sizes => sizes.filter((_, i) => i !== idx));
+                        setForm(f => {
+                          const newPrices = { ...f.shotPrices };
+                          delete newPrices[size];
+                          return { ...f, shotPrices: newPrices };
+                        });
+                      }}>×</button>
+                    </div>
+                  ))}
+                  <button type="button" className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs mt-2" onClick={() => setCustomShotSizes(sizes => [...sizes, ""])}>+ Add Shot Size</button>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <button type="button" className="bg-gray-400 text-white px-4 py-2 rounded" onClick={() => setShowEditModal(false)}>Cancel</button>

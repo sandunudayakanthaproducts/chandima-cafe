@@ -244,9 +244,9 @@ const Sales = () => {
                     <td className="py-2 px-4 border">{item.bottles}</td>
                     <td className="py-2 px-4 border">{item.openVolume || 0}</td>
                     <td className="py-2 px-4 border text-xs">
-                      {SHOT_SIZES.map(size => (
+                      {Object.keys(item.liquor.shotPrices || {}).map(size => (
                         <div key={size}>
-                          {size}ml: {item.liquor.shotPrices?.[size] ? item.liquor.shotPrices[size] : "-"}
+                          {size}ml: {item.liquor.shotPrices[size]}
                         </div>
                       ))}
                     </td>
@@ -260,17 +260,15 @@ const Sales = () => {
                       </button>
                     </td>
                     <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
-                      {SHOT_SIZES.map(size => (
-                        item.liquor.shotPrices?.[size] ? (
-                          <button
-                            key={size}
-                            className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
-                            onClick={() => addShotToBill(item, size)}
-                            disabled={loading}
-                          >
-                            + {size}ml
-                          </button>
-                        ) : null
+                      {Object.keys(item.liquor.shotPrices || {}).map(size => (
+                        <button
+                          key={size}
+                          className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
+                          onClick={() => addShotToBill(item, Number(size))}
+                          disabled={loading}
+                        >
+                          + {size}ml
+                        </button>
                       ))}
                     </td>
                   </tr>
