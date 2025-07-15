@@ -17,6 +17,7 @@ const Sales = () => {
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(false);
   const [billItems, setBillItems] = useState([]); // {itemId, brand, type, qty, price, inventoryId, shotSize}
+  const [search, setSearch] = useState("");
 
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
@@ -201,6 +202,16 @@ const Sales = () => {
         <h1 className="text-3xl font-bold mb-4">Sales (Store 2)</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
         {success && <div className="text-green-600 mb-4">{success}</div>}
+        {/* Search input */}
+        <div className="mb-4 flex items-center gap-4">
+          <input
+            type="text"
+            className="border rounded px-3 py-2 w-full max-w-xs"
+            placeholder="Search by brand or barcode..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
         <div className="overflow-x-auto mb-8">
           <table className="min-w-full bg-white border rounded shadow">
             <thead>
@@ -215,7 +226,15 @@ const Sales = () => {
               </tr>
             </thead>
             <tbody>
-              {inventory.filter(item => item && item.liquor).map((item) => (
+              {inventory.filter(item => {
+                if (!item || !item.liquor) return false;
+                const q = search.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  item.liquor.brand.toLowerCase().includes(q) ||
+                  (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
+                );
+              }).map((item) => (
                 <tr key={item._id} className="text-center">
                   <td className="py-2 px-4 border">{item.liquor.brand}</td>
                   <td className="py-2 px-4 border">{item.liquor.size}</td>
