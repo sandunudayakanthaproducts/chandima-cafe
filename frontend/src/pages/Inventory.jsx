@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 
 const SHOT_SIZES = [25, 50, 100, 120, 180];
@@ -25,6 +25,8 @@ const Inventory = () => {
   const [customShotSizes, setCustomShotSizes] = useState([]);
   const [showTransferHistory, setShowTransferHistory] = useState(false); // NEW
 
+  const barcodeInputRef = useRef(null);
+
   // Fetch inventory for Store 1 and Store 2
   const fetchInventories = async () => {
     const [res1, res2] = await Promise.all([
@@ -47,6 +49,14 @@ const Inventory = () => {
   useEffect(() => {
     fetchInventories();
   }, []);
+
+  useEffect(() => {
+    if (showAddModal) {
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100); // slight delay for modal render
+    }
+  }, [showAddModal]);
 
   // Add Liquor + Inventory
   const handleAdd = async (e) => {
@@ -302,7 +312,21 @@ const Inventory = () => {
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Barcode</label>
-                  <input name="barcode" value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} className="w-full px-3 py-2 border rounded" required />
+                  <input
+                    name="barcode"
+                    ref={barcodeInputRef}
+                    value={form.barcode}
+                    onChange={e => setForm({ ...form, barcode: e.target.value })}
+                    className="w-full px-3 py-2 border rounded"
+                    required
+                    placeholder="Scan or enter barcode"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        // Optionally move to next field or submit
+                        // e.g., document.getElementById('nextFieldId')?.focus();
+                      }
+                    }}
+                  />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Bottle Price</label>

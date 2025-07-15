@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 
 const FoodManagement = () => {
@@ -11,6 +11,8 @@ const FoodManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
 
+  const barcodeInputRef = useRef(null);
+
   const fetchFoods = async () => {
     const res = await fetch("/api/food");
     const data = await res.json();
@@ -20,6 +22,14 @@ const FoodManagement = () => {
   useEffect(() => {
     fetchFoods();
   }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100); // slight delay for modal render
+    }
+  }, [showModal]);
 
   const openAddModal = () => {
     setEditId(null);
@@ -163,7 +173,20 @@ const FoodManagement = () => {
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Barcode</label>
-                  <input name="barcode" value={form.barcode} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+                  <input
+                    name="barcode"
+                    ref={barcodeInputRef}
+                    value={form.barcode}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border rounded"
+                    placeholder="Scan or enter barcode"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        // Optionally move to next field or submit
+                        // e.g., document.getElementById('nextFieldId')?.focus();
+                      }
+                    }}
+                  />
                 </div>
                 {error && <div className="text-red-500 text-sm">{error}</div>}
                 <div className="flex gap-2 justify-end">

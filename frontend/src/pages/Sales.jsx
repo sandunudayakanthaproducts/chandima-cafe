@@ -24,12 +24,23 @@ const Sales = () => {
   const [search, setSearch] = useState("");
   const [restaurant, setRestaurant] = useState({ name: '', address: '', phone: '', email: '' });
   const receiptRef = useRef();
+  const searchInputRef = useRef(null);
+  const [virtualOpenVolumes, setVirtualOpenVolumes] = useState({});
 
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
     const res = await fetch("/api/inventory?store=2");
     const data = await res.json();
     setInventory(data);
+    // Initialize virtual open volumes
+    const vov = {};
+    data.forEach(row => {
+      vov[row._id] = {
+        openVolume: row.openVolume || 0,
+        bottles: row.bottles || 0,
+      };
+    });
+    setVirtualOpenVolumes(vov);
   };
 
   // Fetch food items
@@ -52,6 +63,10 @@ const Sales = () => {
       } catch {}
     };
     fetchRestaurant();
+    // Auto-focus search bar on mount
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
   }, []);
 
   // Add bottle to bill
@@ -59,11 +74,12 @@ const Sales = () => {
     setBillItems(prev => {
       const idx = prev.findIndex(b => b.inventoryId === item._id && b.type === "bottle");
       if (idx !== -1) {
-        // Increment qty
-        const updated = [...prev];
-        updated[idx].qty += 1;
-        updated[idx].price += item.liquor.price;
-        return updated;
+        // Increment qty immutably
+        return prev.map((b, i) =>
+          i === idx
+            ? { ...b, qty: b.qty + 1, price: b.price + item.liquor.price }
+            : b
+        );
       }
       return [...prev, {
         itemId: `${item._id}-bottle`,
@@ -82,11 +98,12 @@ const Sales = () => {
     setBillItems(prev => {
       const idx = prev.findIndex(b => b.inventoryId === item._id && b.type === "shot" && b.shotSize === shotSize);
       if (idx !== -1) {
-        // Increment qty
-        const updated = [...prev];
-        updated[idx].qty += 1;
-        updated[idx].price += shotPrice;
-        return updated;
+        // Increment qty immutably
+        return prev.map((b, i) =>
+          i === idx
+            ? { ...b, qty: b.qty + 1, price: b.price + shotPrice }
+            : b
+        );
       }
       return [...prev, {
         itemId: `${item._id}-shot-${shotSize}`,
@@ -105,11 +122,12 @@ const Sales = () => {
     setBillItems(prev => {
       const idx = prev.findIndex(b => b.foodId === food._id && b.type === "food");
       if (idx !== -1) {
-        // Increment qty
-        const updated = [...prev];
-        updated[idx].qty += 1;
-        updated[idx].price += food.price;
-        return updated;
+        // Increment qty immutably
+        return prev.map((b, i) =>
+          i === idx
+            ? { ...b, qty: b.qty + 1, price: b.price + food.price }
+            : b
+        );
       }
       return [...prev, {
         itemId: `${food._id}-food`,
@@ -124,27 +142,38 @@ const Sales = () => {
 
   // Remove item from bill
   const removeBillItem = (itemId) => {
-    setBillItems(prev => prev.filter(b => b.itemId !== itemId));
+    setBillItems(prev => {
+      const item = prev.find(b => b.itemId === itemId);
+      if (item && item.type === "shot") {
+        // Restore open volume for all removed shots
+        // This logic needs to be re-evaluated based on the new useEffect
+        // For now, we'll rely on the useEffect to recalculate virtualOpenVolumes
+      }
+      return prev.filter(b => b.itemId !== itemId);
+    });
   };
 
   // Update qty in bill
   const updateBillItemQty = (itemId, qty) => {
-    setBillItems(prev => prev.map(b => {
-      if (b.itemId !== itemId) return b;
+    setBillItems(prev => {
+      const item = prev.find(b => b.itemId === itemId);
+      if (!item) return prev;
       const newQty = qty < 1 ? 1 : qty;
       let unitPrice = 0;
-      if (b.type === "bottle") {
-        const inv = inventory.find(i => i._id === b.inventoryId);
+      if (item.type === "bottle") {
+        const inv = inventory.find(i => i._id === item.inventoryId);
         unitPrice = inv?.liquor?.price || 0;
-      } else if (b.type === "shot") {
-        const inv = inventory.find(i => i._id === b.inventoryId);
-        unitPrice = inv?.liquor?.shotPrices?.[b.shotSize] ? Number(inv.liquor.shotPrices[b.shotSize]) : 0;
-      } else if (b.type === "food") {
-        const food = foods.find(f => f._id === b.foodId);
+      } else if (item.type === "shot") {
+        const inv = inventory.find(i => i._id === item.inventoryId);
+        unitPrice = inv?.liquor?.shotPrices?.[item.shotSize] ? Number(inv.liquor.shotPrices[item.shotSize]) : 0;
+        // Adjust virtual open volume
+        // This logic needs to be re-evaluated based on the new useEffect
+      } else if (item.type === "food") {
+        const food = foods.find(f => f._id === item.foodId);
         unitPrice = food?.price || 0;
       }
-      return { ...b, qty: newQty, price: unitPrice * newQty };
-    }));
+      return prev.map(b => b.itemId !== itemId ? b : { ...b, qty: newQty, price: unitPrice * newQty });
+    });
   };
 
   // Process bill
@@ -261,6 +290,7 @@ const Sales = () => {
         billId
       });
       setBillItems([]);
+      setSearch(""); // Clear search after bill processed
       fetchInventory();
     } catch (err) {
       setError(err.message);
@@ -301,6 +331,44 @@ const Sales = () => {
     pdf.save(`receipt-${bill.billId || Date.now()}.pdf`);
   };
 
+  // When bill is processed or canceled, reset virtual open volumes
+  useEffect(() => {
+    if (bill === null) {
+      // Bill closed/canceled, reset virtual open volumes
+      fetchInventory();
+    }
+  }, [bill]);
+
+  // Robust recalculation of virtual open volumes and bottles
+  useEffect(() => {
+    // Recalculate virtual open volumes and bottles from inventory and billItems
+    const vov = {};
+    inventory.forEach(row => {
+      let openVolume = row.openVolume || 0;
+      let bottles = row.bottles || 0;
+      // 1. Subtract bottles added to bill
+      const bottleBill = billItems.find(b => b.type === "bottle" && b.inventoryId === row._id);
+      if (bottleBill) {
+        bottles -= bottleBill.qty;
+      }
+      // 2. Subtract bottles and open volume for shots in bill
+      billItems.filter(b => b.type === "shot" && b.inventoryId === row._id).forEach(b => {
+        for (let i = 0; i < b.qty; i++) {
+          if (openVolume >= b.shotSize) {
+            openVolume -= b.shotSize;
+          } else {
+            if (bottles > 0) {
+              openVolume += row.liquor.size - b.shotSize;
+              bottles -= 1;
+            }
+          }
+        }
+      });
+      vov[row._id] = { openVolume, bottles };
+    });
+    setVirtualOpenVolumes(vov);
+  }, [billItems, inventory]);
+
   return (
     <>
       <Navbar />
@@ -312,10 +380,16 @@ const Sales = () => {
         <div className="mb-4 flex items-center gap-4">
           <input
             type="text"
+            ref={searchInputRef}
             className="border rounded px-3 py-2 w-full max-w-xs"
-            placeholder="Search by brand or barcode..."
+            placeholder="Scan or search by brand or barcode..."
             value={search}
             onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                // Optionally, you could trigger a search or move focus
+              }
+            }}
           />
         </div>
         <div className="overflow-x-auto mb-8">
@@ -349,8 +423,8 @@ const Sales = () => {
                     <tr key={item._id} className="text-center">
                       <td className="py-2 px-4 border">{item.liquor.brand}</td>
                       <td className="py-2 px-4 border">{item.liquor.size}</td>
-                      <td className="py-2 px-4 border">{item.bottles}</td>
-                      <td className="py-2 px-4 border">{item.openVolume || 0}</td>
+                      <td className="py-2 px-4 border">{virtualOpenVolumes[item._id]?.bottles ?? item.bottles}</td>
+                      <td className="py-2 px-4 border">{virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0}</td>
                       <td className="py-2 px-4 border text-xs">
                         {Object.keys(item.liquor.shotPrices || {}).map(size => (
                           <div key={size}>
