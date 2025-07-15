@@ -213,67 +213,71 @@ const Sales = () => {
           />
         </div>
         <div className="overflow-x-auto mb-8">
-          <table className="min-w-full bg-white border rounded shadow">
-            <thead>
-              <tr className="bg-blue-100">
-                <th className="py-2 px-4 border">Brand</th>
-                <th className="py-2 px-4 border">Bottle Size (ml)</th>
-                <th className="py-2 px-4 border">Bottles</th>
-                <th className="py-2 px-4 border">Open Volume (ml)</th>
-                <th className="py-2 px-4 border">Shot Prices</th>
-                <th className="py-2 px-4 border">Add Bottle</th>
-                <th className="py-2 px-4 border">Add Shot</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inventory.filter(item => {
-                if (!item || !item.liquor) return false;
-                const q = search.trim().toLowerCase();
-                if (!q) return true;
-                return (
-                  item.liquor.brand.toLowerCase().includes(q) ||
-                  (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
-                );
-              }).map((item) => (
-                <tr key={item._id} className="text-center">
-                  <td className="py-2 px-4 border">{item.liquor.brand}</td>
-                  <td className="py-2 px-4 border">{item.liquor.size}</td>
-                  <td className="py-2 px-4 border">{item.bottles}</td>
-                  <td className="py-2 px-4 border">{item.openVolume || 0}</td>
-                  <td className="py-2 px-4 border text-xs">
-                    {SHOT_SIZES.map(size => (
-                      <div key={size}>
-                        {size}ml: {item.liquor.shotPrices?.[size] ? item.liquor.shotPrices[size] : "-"}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="py-2 px-4 border">
-                    <button
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      onClick={() => addBottleToBill(item)}
-                      disabled={loading || item.bottles < 1}
-                    >
-                      + Bottle
-                    </button>
-                  </td>
-                  <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
-                    {SHOT_SIZES.map(size => (
-                      item.liquor.shotPrices?.[size] ? (
-                        <button
-                          key={size}
-                          className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
-                          onClick={() => addShotToBill(item, size)}
-                          disabled={loading}
-                        >
-                          + {size}ml
-                        </button>
-                      ) : null
-                    ))}
-                  </td>
+          {search.trim() === "" ? (
+            <div className="text-gray-500 text-center py-8">Type to search for products by brand or barcode.</div>
+          ) : (
+            <table className="min-w-full bg-white border rounded shadow">
+              <thead>
+                <tr className="bg-blue-100">
+                  <th className="py-2 px-4 border">Brand</th>
+                  <th className="py-2 px-4 border">Bottle Size (ml)</th>
+                  <th className="py-2 px-4 border">Bottles</th>
+                  <th className="py-2 px-4 border">Open Volume (ml)</th>
+                  <th className="py-2 px-4 border">Shot Prices</th>
+                  <th className="py-2 px-4 border">Add Bottle</th>
+                  <th className="py-2 px-4 border">Add Shot</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {inventory.filter(item => {
+                  if (!item || !item.liquor) return false;
+                  const q = search.trim().toLowerCase();
+                  if (!q) return false;
+                  return (
+                    item.liquor.brand.toLowerCase().includes(q) ||
+                    (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
+                  );
+                }).map((item) => (
+                  <tr key={item._id} className="text-center">
+                    <td className="py-2 px-4 border">{item.liquor.brand}</td>
+                    <td className="py-2 px-4 border">{item.liquor.size}</td>
+                    <td className="py-2 px-4 border">{item.bottles}</td>
+                    <td className="py-2 px-4 border">{item.openVolume || 0}</td>
+                    <td className="py-2 px-4 border text-xs">
+                      {SHOT_SIZES.map(size => (
+                        <div key={size}>
+                          {size}ml: {item.liquor.shotPrices?.[size] ? item.liquor.shotPrices[size] : "-"}
+                        </div>
+                      ))}
+                    </td>
+                    <td className="py-2 px-4 border">
+                      <button
+                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                        onClick={() => addBottleToBill(item)}
+                        disabled={loading || item.bottles < 1}
+                      >
+                        + Bottle
+                      </button>
+                    </td>
+                    <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
+                      {SHOT_SIZES.map(size => (
+                        item.liquor.shotPrices?.[size] ? (
+                          <button
+                            key={size}
+                            className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
+                            onClick={() => addShotToBill(item, size)}
+                            disabled={loading}
+                          >
+                            + {size}ml
+                          </button>
+                        ) : null
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
         {/* Bill Builder Section */}
         <div className="mb-8">
