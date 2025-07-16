@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 
 const BillHistory = () => {
@@ -17,6 +17,10 @@ const BillHistory = () => {
   const [inventoryStore1, setInventoryStore1] = useState([]);
   const [inventoryStore2, setInventoryStore2] = useState([]);
   const [foodSummary, setFoodSummary] = useState([]);
+  const [cocktailSummary, setCocktailSummary] = useState([]);
+  const [cocktailSummaryLoading, setCocktailSummaryLoading] = useState(false); // NEW
+  const cocktailCache = useRef({}); // NEW: cache for fetched cocktails
+  const [cocktailDefs, setCocktailDefs] = useState([]); // Add this state
 
   const fetchBills = async () => {
     setLoading(true);
@@ -56,6 +60,14 @@ const BillHistory = () => {
     setFilteredBills(bills);
   }, [bills]);
 
+  useEffect(() => {
+    // Fetch all cocktail definitions once
+    fetch('/api/cocktail')
+      .then(res => res.json())
+      .then(setCocktailDefs)
+      .catch(() => setCocktailDefs([]));
+  }, []);
+
   const handleFilter = () => {
     if (!filterStart && !filterEnd) {
       setFilteredBills(bills);
@@ -85,7 +97,7 @@ const BillHistory = () => {
     setFilteredBills(bills);
   };
 
-  const handleShowToday = () => {
+  const handleShowToday = async () => {
     if (showingToday) {
       setFilteredBills(bills);
       setShowingToday(false);
@@ -93,8 +105,11 @@ const BillHistory = () => {
       setBrandSummary([]);
       setShotSizes([]);
       setFoodSummary([]);
+      setCocktailSummary([]);
+      setCocktailSummaryLoading(false);
       return;
     }
+    setCocktailSummaryLoading(true);
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -112,6 +127,7 @@ const BillHistory = () => {
     const brandMap = {};
     const shotSizeSet = new Set();
     const foodMap = {};
+    const cocktailMap = {};
     todayBills.forEach(bill => {
       totalSales += bill.total || 0;
       bill.items?.forEach(item => {
@@ -136,13 +152,26 @@ const BillHistory = () => {
           foodMap[item.brand].qty += item.qty;
           foodMap[item.brand].total += item.price;
         }
+        if (item.type === 'cocktail') {
+          // Use canonical cocktail definition for ingredient breakdown
+          const cocktailDef = cocktailDefs.find(c => c._id === item.cocktailId || c.name === item.brand);
+          if (!cocktailMap[item.brand]) cocktailMap[item.brand] = { qty: 0, ingredients: {} };
+          cocktailMap[item.brand].qty += item.qty;
+          if (cocktailDef && Array.isArray(cocktailDef.ingredients)) {
+            cocktailDef.ingredients.forEach(ing => {
+              if (!cocktailMap[item.brand].ingredients[ing.brand]) cocktailMap[item.brand].ingredients[ing.brand] = 0;
+              cocktailMap[item.brand].ingredients[ing.brand] += ing.volume * item.qty;
+            });
+          }
+        }
       });
     });
     setTodaySummary({ totalSales, totalBottles, totalShots });
-    // Convert brandMap to array for rendering
     setBrandSummary(Object.entries(brandMap).map(([brand, vals]) => ({ brand, ...vals })));
     setShotSizes(Array.from(shotSizeSet).sort((a, b) => a - b));
     setFoodSummary(Object.entries(foodMap).map(([name, vals]) => ({ name, ...vals })));
+    setCocktailSummary(Object.entries(cocktailMap).map(([name, vals]) => ({ name, qty: vals.qty, ingredients: vals.ingredients })));
+    setCocktailSummaryLoading(false);
   };
 
   const viewBill = async (billId) => {
@@ -285,6 +314,48 @@ const BillHistory = () => {
                         <td className="py-1 px-2 border">{row.total.toLocaleString()}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {/* Cocktail/Mocktail Sales Summary Table */}
+            {cocktailSummaryLoading ? (
+              <div className="text-pink-700 font-semibold my-2">Loading cocktail summary...</div>
+            ) : cocktailSummary.length > 0 && (
+              <div className="mt-4">
+                <div className="font-semibold mb-2 text-pink-900">Cocktail/Mocktail Sales Summary:</div>
+                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                  <thead>
+                    <tr className="bg-pink-100">
+                      <th className="py-2 px-4 border">Cocktail Name</th>
+                      <th className="py-2 px-4 border">Quantity Sold</th>
+                      <th className="py-2 px-4 border">Ingredients (per × qty = total)</th>
+                      <th className="py-2 px-4 border">Total Volume (ml)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cocktailSummary.map((row, idx) => {
+                      // row.ingredients is { brand: totalVol } (already multiplied by qty)
+                      // To get per-cocktail volume, we need to divide by row.qty (if qty > 0)
+                      const qty = row.qty || 1;
+                      const ingredientBreakdown = Object.entries(row.ingredients).map(([brand, totalVol], i) => {
+                        const perCocktailVol = Math.round(totalVol / qty);
+                        return (
+                          <div key={i}>
+                            {brand}: <span className="font-mono">{perCocktailVol}ml × {qty} = {totalVol}ml</span>
+                          </div>
+                        );
+                      });
+                      const totalVolume = Object.values(row.ingredients).reduce((sum, v) => sum + v, 0);
+                      return (
+                        <tr key={idx} className="text-center">
+                          <td className="py-1 px-2 border font-semibold">{row.name}</td>
+                          <td className="py-1 px-2 border">{qty}</td>
+                          <td className="py-1 px-2 border">{ingredientBreakdown}</td>
+                          <td className="py-1 px-2 border font-bold">{totalVolume}ml</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

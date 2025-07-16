@@ -1,5 +1,7 @@
 import express from 'express';
 import Bill from '../models/Bill.js';
+import Inventory from '../models/Inventory.js';
+import Cocktail from '../models/Cocktail.js';
 
 const router = express.Router();
 
@@ -34,6 +36,43 @@ router.post('/', async (req, res) => {
         }
       } catch (e) {
         return res.status(400).json({ message: 'Invalid items[0] format' });
+      }
+    }
+    // Deduct inventory for cocktails
+    for (const item of req.body.items) {
+      if (item.type === 'cocktail' && item.cocktailId) {
+        // Get cocktail ingredients
+        let ingredients = item.ingredients;
+        if (!ingredients || !Array.isArray(ingredients)) {
+          // fallback: fetch from DB
+          const cocktailDoc = await Cocktail.findById(item.cocktailId);
+          ingredients = cocktailDoc ? cocktailDoc.ingredients : [];
+        }
+        for (const ing of ingredients) {
+          // For each ingredient, deduct (volume * qty) from Store 2 inventory
+          const inv = await Inventory.findOne({ liquor: ing.liquorId, store: 2 });
+          if (!inv) continue; // skip if not found
+          let openVolume = inv.openVolume || 0;
+          let bottles = inv.bottles || 0;
+          let liquorSize = inv.liquor && inv.liquor.size ? inv.liquor.size : 750; // fallback size
+          // Try to get liquor size from population if not present
+          if (!liquorSize && inv.liquor && inv.liquor.size) liquorSize = inv.liquor.size;
+          const totalVol = ing.volume * (item.qty || 1);
+          let remaining = totalVol;
+          while (remaining > 0) {
+            if (openVolume >= remaining) {
+              openVolume -= remaining;
+              remaining = 0;
+            } else {
+              remaining -= openVolume;
+              if (bottles < 1) throw new Error(`Not enough bottles for ${ing.brand}`);
+              openVolume = liquorSize;
+              bottles -= 1;
+            }
+          }
+          // Save updated inventory
+          await Inventory.findByIdAndUpdate(inv._id, { openVolume, bottles });
+        }
       }
     }
     const bill = new Bill(req.body);

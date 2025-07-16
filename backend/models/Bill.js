@@ -9,7 +9,16 @@ const billSchema = new mongoose.Schema({
       qty: { type: Number },
       price: { type: Number },
       shotSize: { type: Number },
-      liquorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Liquor' }
+      liquorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Liquor' },
+      foodId: { type: mongoose.Schema.Types.ObjectId, ref: 'Food' },
+      cocktailId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cocktail' },
+      ingredients: [
+        {
+          liquorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Liquor' },
+          brand: { type: String },
+          volume: { type: Number }
+        }
+      ]
     }
   ],
   total: { type: Number },
