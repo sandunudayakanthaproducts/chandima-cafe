@@ -132,19 +132,22 @@ const BillHistory = () => {
       totalSales += bill.total || 0;
       bill.items?.forEach(item => {
         if (!item.brand) return;
-        if (!brandMap[item.brand]) brandMap[item.brand] = { bottles: 0, shots: 0, shotVolumes: {}, totalShotVolume: 0 };
-        if (item.type === 'bottle') {
-          totalBottles += item.qty;
-          brandMap[item.brand].bottles += item.qty;
-        }
-        if (item.type === 'shot') {
-          totalShots += item.qty;
-          brandMap[item.brand].shots += item.qty;
-          if (item.shotSize) {
-            shotSizeSet.add(item.shotSize);
-            if (!brandMap[item.brand].shotVolumes[item.shotSize]) brandMap[item.brand].shotVolumes[item.shotSize] = 0;
-            brandMap[item.brand].shotVolumes[item.shotSize] += item.qty;
-            brandMap[item.brand].totalShotVolume += item.qty * item.shotSize;
+        // Only count bottle and shot items in brandMap
+        if (item.type === 'bottle' || item.type === 'shot') {
+          if (!brandMap[item.brand]) brandMap[item.brand] = { bottles: 0, shots: 0, shotVolumes: {}, totalShotVolume: 0 };
+          if (item.type === 'bottle') {
+            totalBottles += item.qty;
+            brandMap[item.brand].bottles += item.qty;
+          }
+          if (item.type === 'shot') {
+            totalShots += item.qty;
+            brandMap[item.brand].shots += item.qty;
+            if (item.shotSize) {
+              shotSizeSet.add(item.shotSize);
+              if (!brandMap[item.brand].shotVolumes[item.shotSize]) brandMap[item.brand].shotVolumes[item.shotSize] = 0;
+              brandMap[item.brand].shotVolumes[item.shotSize] += item.qty;
+              brandMap[item.brand].totalShotVolume += item.qty * item.shotSize;
+            }
           }
         }
         if (item.type === 'food') {
