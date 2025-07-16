@@ -451,7 +451,7 @@ const Sales = () => {
           ) : (
             <>
               {/* Liquor Table */}
-              <table className="min-w-full bg-white border rounded shadow mb-6">
+              <table className="min-w-full bg-white border rounded shadow mb-7">
                 <thead>
                   <tr className="bg-blue-100">
                     <th className="py-2 px-4 border">Brand</th>
@@ -511,7 +511,7 @@ const Sales = () => {
                 </tbody>
               </table>
               {/* Food Table */}
-              <table className="min-w-full bg-white border rounded shadow">
+              <table className="min-w-full bg-white border rounded shadow mb-7">
                 <thead>
                   <tr className="bg-green-100">
                     <th className="py-2 px-4 border">Name</th>
