@@ -14,6 +14,7 @@ const Sidebar = ({ open, onClose, user, onLogout }) => (
       {user.role === "admin" && <Link to="/inventory" className="hover:underline" onClick={onClose}>Inventory</Link>}
       {user.role === "admin" && <Link to="/bill-history" className="hover:underline" onClick={onClose}>Bill History</Link>}
       {user.role === "admin" && <Link to="/monthly-report" className="hover:underline" onClick={onClose}>Monthly Report</Link>}
+      {user.role === "worker" && <Link to="/monthly-report" className="hover:underline" onClick={onClose}>Monthly Report</Link>}
       {user.role === "admin" && <Link to="/user-management" className="hover:underline" onClick={onClose}>User Management</Link>}
       {user.role === "admin" && <Link to="/food-management" className="hover:underline" onClick={onClose}>Food Management</Link>}
       {user.role === "admin" && <Link to="/restaurant-details" className="hover:underline" onClick={onClose}>Restaurant Details</Link>}

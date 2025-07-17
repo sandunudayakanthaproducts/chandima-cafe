@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 
 const BillHistoryWorker = () => {
   const [bills, setBills] = useState([]);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [billSales, setBillSales] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [filterStart, setFilterStart] = useState("");
   const [filterEnd, setFilterEnd] = useState("");
   const [filteredBills, setFilteredBills] = useState([]);
@@ -10,28 +14,57 @@ const BillHistoryWorker = () => {
   const [todaySummary, setTodaySummary] = useState(null);
   const [brandSummary, setBrandSummary] = useState([]);
   const [shotSizes, setShotSizes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [inventoryStore1, setInventoryStore1] = useState([]);
+  const [inventoryStore2, setInventoryStore2] = useState([]);
+  const [foodSummary, setFoodSummary] = useState([]);
+  const [cocktailSummary, setCocktailSummary] = useState([]);
+  const [cocktailSummaryLoading, setCocktailSummaryLoading] = useState(false);
+  const cocktailCache = useRef({});
+  const [cocktailDefs, setCocktailDefs] = useState([]);
+
+  const fetchBills = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/bill");
+      const data = await res.json();
+      setBills(data);
+    } catch (err) {
+      setError("Failed to fetch bills");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInventories = async () => {
+    try {
+      const [res1, res2] = await Promise.all([
+        fetch("/api/inventory?store=1"),
+        fetch("/api/inventory?store=2"),
+      ]);
+      const data1 = await res1.json();
+      const data2 = await res2.json();
+      setInventoryStore1(data1);
+      setInventoryStore2(data2);
+    } catch (err) {
+      // ignore errors for now
+    }
+  };
 
   useEffect(() => {
-    const fetchBills = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/bill");
-        const data = await res.json();
-        setBills(data);
-      } catch (err) {
-        setError("Failed to fetch bills");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBills();
+    fetchInventories();
   }, []);
 
   useEffect(() => {
     setFilteredBills(bills);
   }, [bills]);
+
+  useEffect(() => {
+    fetch('/api/cocktail')
+      .then(res => res.json())
+      .then(setCocktailDefs)
+      .catch(() => setCocktailDefs([]));
+  }, []);
 
   const handleFilter = () => {
     if (!filterStart && !filterEnd) {
@@ -61,15 +94,19 @@ const BillHistoryWorker = () => {
     setFilteredBills(bills);
   };
 
-  const handleShowToday = () => {
+  const handleShowToday = async () => {
     if (showingToday) {
       setFilteredBills(bills);
       setShowingToday(false);
       setTodaySummary(null);
       setBrandSummary([]);
       setShotSizes([]);
+      setFoodSummary([]);
+      setCocktailSummary([]);
+      setCocktailSummaryLoading(false);
       return;
     }
+    setCocktailSummaryLoading(true);
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -80,28 +117,51 @@ const BillHistoryWorker = () => {
     });
     setFilteredBills(todayBills);
     setShowingToday(true);
+    // Calculate summary
     let totalSales = 0;
     let totalBottles = 0;
     let totalShots = 0;
     const brandMap = {};
     const shotSizeSet = new Set();
+    const foodMap = {};
+    const cocktailMap = {};
     todayBills.forEach(bill => {
       totalSales += bill.total || 0;
       bill.items?.forEach(item => {
         if (!item.brand) return;
-        if (!brandMap[item.brand]) brandMap[item.brand] = { bottles: 0, shots: 0, shotVolumes: {}, totalShotVolume: 0 };
-        if (item.type === 'bottle') {
-          totalBottles += item.qty;
-          brandMap[item.brand].bottles += item.qty;
+        // Only count bottle and shot items in brandMap
+        if (item.type === 'bottle' || item.type === 'shot') {
+          if (!brandMap[item.brand]) brandMap[item.brand] = { bottles: 0, shots: 0, shotVolumes: {}, totalShotVolume: 0 };
+          if (item.type === 'bottle') {
+            totalBottles += item.qty;
+            brandMap[item.brand].bottles += item.qty;
+          }
+          if (item.type === 'shot') {
+            totalShots += item.qty;
+            brandMap[item.brand].shots += item.qty;
+            if (item.shotSize) {
+              shotSizeSet.add(item.shotSize);
+              if (!brandMap[item.brand].shotVolumes[item.shotSize]) brandMap[item.brand].shotVolumes[item.shotSize] = 0;
+              brandMap[item.brand].shotVolumes[item.shotSize] += item.qty;
+              brandMap[item.brand].totalShotVolume += item.qty * item.shotSize;
+            }
+          }
         }
-        if (item.type === 'shot') {
-          totalShots += item.qty;
-          brandMap[item.brand].shots += item.qty;
-          if (item.shotSize) {
-            shotSizeSet.add(item.shotSize);
-            if (!brandMap[item.brand].shotVolumes[item.shotSize]) brandMap[item.brand].shotVolumes[item.shotSize] = 0;
-            brandMap[item.brand].shotVolumes[item.shotSize] += item.qty;
-            brandMap[item.brand].totalShotVolume += item.qty * item.shotSize;
+        if (item.type === 'food') {
+          if (!foodMap[item.brand]) foodMap[item.brand] = { qty: 0, total: 0 };
+          foodMap[item.brand].qty += item.qty;
+          foodMap[item.brand].total += item.price;
+        }
+        if (item.type === 'cocktail') {
+          // Use canonical cocktail definition for ingredient breakdown
+          const cocktailDef = cocktailDefs.find(c => c._id === item.cocktailId || c.name === item.brand);
+          if (!cocktailMap[item.brand]) cocktailMap[item.brand] = { qty: 0, ingredients: {} };
+          cocktailMap[item.brand].qty += item.qty;
+          if (cocktailDef && Array.isArray(cocktailDef.ingredients)) {
+            cocktailDef.ingredients.forEach(ing => {
+              if (!cocktailMap[item.brand].ingredients[ing.brand]) cocktailMap[item.brand].ingredients[ing.brand] = 0;
+              cocktailMap[item.brand].ingredients[ing.brand] += ing.volume * item.qty;
+            });
           }
         }
       });
@@ -109,6 +169,9 @@ const BillHistoryWorker = () => {
     setTodaySummary({ totalSales, totalBottles, totalShots });
     setBrandSummary(Object.entries(brandMap).map(([brand, vals]) => ({ brand, ...vals })));
     setShotSizes(Array.from(shotSizeSet).sort((a, b) => a - b));
+    setFoodSummary(Object.entries(foodMap).map(([name, vals]) => ({ name, ...vals })));
+    setCocktailSummary(Object.entries(cocktailMap).map(([name, vals]) => ({ name, qty: vals.qty, ingredients: vals.ingredients })));
+    setCocktailSummaryLoading(false);
   };
 
   return (
@@ -117,6 +180,7 @@ const BillHistoryWorker = () => {
       <div className="p-8 max-w-3xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Bill History</h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
+        {/* Date Filter */}
         <div className="flex flex-wrap gap-4 items-end mb-6">
           <div>
             <label className="block text-xs font-semibold mb-1">Start Date</label>
@@ -169,7 +233,7 @@ const BillHistoryWorker = () => {
             {brandSummary.length > 0 && (
               <div className="mt-4">
                 <div className="font-semibold mb-2 text-green-900">Breakdown by Brand:</div>
-                <table className="min-w-full bg-white border rounded shadow text-sm">
+                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
                   <thead>
                     <tr className="bg-green-100">
                       <th className="py-2 px-4 border">Brand</th>
@@ -197,6 +261,96 @@ const BillHistoryWorker = () => {
                 </table>
               </div>
             )}
+            {/* Add food and cocktail/mocktail summaries, and inventory tables here, matching BillHistory */}
+            {foodSummary.length > 0 && (
+              <div className="mt-4">
+                <div className="font-semibold mb-2 text-yellow-900">Food Sales Summary:</div>
+                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                  <thead>
+                    <tr className="bg-yellow-100">
+                      <th className="py-2 px-4 border">Food Item</th>
+                      <th className="py-2 px-4 border">Total Portions Sold</th>
+                      <th className="py-2 px-4 border">Total Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {foodSummary.map((row, idx) => (
+                      <tr key={idx} className="text-center">
+                        <td className="py-1 px-2 border font-semibold">{row.name}</td>
+                        <td className="py-1 px-2 border">{row.qty}</td>
+                        <td className="py-1 px-2 border">{row.total.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {cocktailSummaryLoading ? (
+              <div className="text-pink-700 font-semibold my-2">Loading cocktail summary...</div>
+            ) : cocktailSummary.length > 0 && (
+              <div className="mt-4">
+                <div className="font-semibold mb-2 text-pink-900">Cocktail/Mocktail Sales Summary:</div>
+                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                  <thead>
+                    <tr className="bg-pink-100">
+                      <th className="py-2 px-4 border">Cocktail Name</th>
+                      <th className="py-2 px-4 border">Quantity Sold</th>
+                      <th className="py-2 px-4 border">Ingredients (per × qty = total)</th>
+                      <th className="py-2 px-4 border">Total Volume (ml)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cocktailSummary.map((row, idx) => {
+                      const qty = row.qty || 1;
+                      const ingredientBreakdown = Object.entries(row.ingredients).map(([brand, totalVol], i) => {
+                        const perCocktailVol = Math.round(totalVol / qty);
+                        return (
+                          <div key={i}>
+                            {brand}: <span className="font-mono">{perCocktailVol}ml × {qty} = {totalVol}ml</span>
+                          </div>
+                        );
+                      });
+                      const totalVolume = Object.values(row.ingredients).reduce((sum, v) => sum + v, 0);
+                      return (
+                        <tr key={idx} className="text-center">
+                          <td className="py-1 px-2 border font-semibold">{row.name}</td>
+                          <td className="py-1 px-2 border">{qty}</td>
+                          <td className="py-1 px-2 border">{ingredientBreakdown}</td>
+                          <td className="py-1 px-2 border font-bold">{totalVolume}ml</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="mt-4">
+              <div className="font-semibold mb-2 text-blue-900">Current Inventory (Bottles & Open Volume Left)</div>
+              <table className="min-w-full bg-white border rounded shadow text-sm">
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="py-2 px-4 border">Brand</th>
+                    <th className="py-2 px-4 border">Store</th>
+                    <th className="py-2 px-4 border">Bottles Left</th>
+                    <th className="py-2 px-4 border">Open Volume (ml)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1,2].map(store => {
+                    const inv = store === 1 ? inventoryStore1 : inventoryStore2;
+                    const safeInv = inv.filter(row => row.liquor);
+                    return safeInv.map((row, idx) => (
+                      <tr key={store + '-' + row.liquor._id} className="text-center">
+                        <td className="py-1 px-2 border">{row.liquor.brand}</td>
+                        <td className="py-1 px-2 border">Store {store}</td>
+                        <td className="py-1 px-2 border">{row.bottles}</td>
+                        <td className="py-1 px-2 border">{row.openVolume || 0}</td>
+                      </tr>
+                    ));
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
         <div className="overflow-x-auto mb-8">
@@ -230,7 +384,7 @@ const BillHistoryWorker = () => {
                           {bill.items?.map((item, idx) => (
                             <tr key={idx} className="text-center">
                               <td className="py-1 px-2 border">{item.brand || "-"}</td>
-                              <td className="py-1 px-2 border">{item.type === "bottle" ? "Bottle" : `${item.shotSize}ml Shot`}</td>
+                              <td className="py-1 px-2 border">{item.type === "bottle" ? "Bottle" : item.type === "shot" ? `${item.shotSize}ml Shot` : item.type === "food" ? "Portion" : item.type === "cocktail" ? "Cocktail" : ""}</td>
                               <td className="py-1 px-2 border">{item.qty}</td>
                               <td className="py-1 px-2 border">{item.price?.toLocaleString()}</td>
                             </tr>

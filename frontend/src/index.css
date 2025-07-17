@@ -17,3 +17,8 @@
 
 }*/
 
+@layer base {
+  body {
+    @apply text-white bg-[#000000];
+  }
+}

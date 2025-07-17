@@ -434,7 +434,7 @@ const Sales = () => {
           <input
             type="text"
             ref={searchInputRef}
-            className="border rounded px-3 py-2 w-full max-w-xs"
+            className="border rounded-4xl px-6 py-4 w-screen  focus:outline-amber-400 focus:ring-2 focus:ring-amber-400 hover:border-amber-300"
             placeholder="Scan or search by brand or barcode..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -451,16 +451,16 @@ const Sales = () => {
           ) : (
             <>
               {/* Liquor Table */}
-              <table className="min-w-full bg-white border rounded shadow mb-7">
+              <table className="min-w-full bg-gray-900 rounded shadow mb-7">
                 <thead>
-                  <tr className="bg-blue-100">
-                    <th className="py-2 px-4 border">Brand</th>
-                    <th className="py-2 px-4 border">Bottle Size (ml)</th>
-                    <th className="py-2 px-4 border">Bottles</th>
-                    <th className="py-2 px-4 border">Open Volume (ml)</th>
-                    <th className="py-2 px-4 border">Shot Prices</th>
-                    <th className="py-2 px-4 border">Add Bottle</th>
-                    <th className="py-2 px-4 border">Add Shot</th>
+                  <tr className="bg-gray-900">
+                    <th className="py-2 px-4">Brand</th>
+                    <th className="py-2 px-4 ">Bottle Size (ml)</th>
+                    <th className="py-2 px-4 ">Bottles</th>
+                    <th className="py-2 px-4 ">Open Volume (ml)</th>
+                    <th className="py-2 px-4 ">Shot Prices</th>
+                    <th className="py-2 px-4 ">Add Bottle</th>
+                    <th className="py-2 px-4 ">Add Shot</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -474,31 +474,31 @@ const Sales = () => {
                     );
                   }).map((item) => (
                     <tr key={item._id} className="text-center">
-                      <td className="py-2 px-4 border">{item.liquor.brand}</td>
-                      <td className="py-2 px-4 border">{item.liquor.size}</td>
-                      <td className="py-2 px-4 border">{virtualOpenVolumes[item._id]?.bottles ?? item.bottles}</td>
-                      <td className="py-2 px-4 border">{virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0}</td>
-                      <td className="py-2 px-4 border text-xs">
+                      <td className="py-2 px-4 border-t border-amber-400">{item.liquor.brand}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{item.liquor.size}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{virtualOpenVolumes[item._id]?.bottles ?? item.bottles}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0}</td>
+                      <td className="py-2 px-4 border-t border-amber-400 text-xs">
                         {Object.keys(item.liquor.shotPrices || {}).map(size => (
                           <div key={size}>
                             {size}ml: {item.liquor.shotPrices[size]}
                           </div>
                         ))}
                       </td>
-                      <td className="py-2 px-4 border">
+                      <td className="py-2 px-4 border-t border-amber-400">
                         <button
-                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                          className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
                           onClick={() => addBottleToBill(item)}
                           disabled={loading || item.bottles < 1}
                         >
                           + Bottle
                         </button>
                       </td>
-                      <td className="py-2 px-4 border flex flex-wrap gap-2 justify-center">
+                      <td className="py-6 px-5  flex flex-wrap gap-2 justify-center border-t border-amber-400 text-center">
                         {Object.keys(item.liquor.shotPrices || {}).map(size => (
                           <button
                             key={size}
-                            className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 text-xs"
+                            className="bg-emerald-500 text-white px-3 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
                             onClick={() => addShotToBill(item, Number(size))}
                             disabled={loading}
                           >
@@ -511,13 +511,13 @@ const Sales = () => {
                 </tbody>
               </table>
               {/* Food Table */}
-              <table className="min-w-full bg-white border rounded shadow mb-7">
+              <table className="min-w-full bg-gray-900  rounded shadow mb-7">
                 <thead>
-                  <tr className="bg-green-100">
-                    <th className="py-2 px-4 border">Name</th>
-                    <th className="py-2 px-4 border">Price</th>
-                    <th className="py-2 px-4 border">Barcode</th>
-                    <th className="py-2 px-4 border">Add</th>
+                  <tr className="bg-gray-900">
+                    <th className="py-2 px-4 ">Name</th>
+                    <th className="py-2 px-4">Price</th>
+                    <th className="py-2 px-4">Barcode</th>
+                    <th className="py-2 px-4">Add</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -530,16 +530,16 @@ const Sales = () => {
                     );
                   }).map(f => (
                     <tr key={f._id} className="text-center">
-                      <td className="py-2 px-4 border">{f.name}</td>
-                      <td className="py-2 px-4 border">{f.price}</td>
-                      <td className="py-2 px-4 border">{f.barcode}</td>
-                      <td className="py-2 px-4 border">
+                      <td className="py-2 px-4 border-t border-amber-400">{f.name}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{f.price}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{f.barcode}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">
                         <button
-                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                          className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
                           onClick={() => addFoodToBill(f)}
                           disabled={loading}
                         >
-                          + Food
+                          + Add
                         </button>
                       </td>
                     </tr>
@@ -547,14 +547,14 @@ const Sales = () => {
                 </tbody>
               </table>
               {/* Cocktail Table */}
-              <table className="min-w-full bg-white border rounded shadow mb-6">
+              <table className="min-w-full bg-gray-900 rounded shadow mb-6">
                 <thead>
-                  <tr className="bg-pink-100">
-                    <th className="py-2 px-4 border">Name</th>
-                    <th className="py-2 px-4 border">Price</th>
-                    <th className="py-2 px-4 border">Barcode</th>
-                    <th className="py-2 px-4 border">Ingredients</th>
-                    <th className="py-2 px-4 border">Add</th>
+                  <tr className="bg-gray-900">
+                    <th className="py-2 px-4 ">Name</th>
+                    <th className="py-2 px-4 ">Price</th>
+                    <th className="py-2 px-4 ">Barcode</th>
+                    <th className="py-2 px-4 ">Ingredients</th>
+                    <th className="py-2 px-4 ">Add</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -567,17 +567,17 @@ const Sales = () => {
                     );
                   }).map(c => (
                     <tr key={c._id} className="text-center">
-                      <td className="py-2 px-4 border">{c.name}</td>
-                      <td className="py-2 px-4 border">{c.price}</td>
-                      <td className="py-2 px-4 border">{c.barcode}</td>
-                      <td className="py-2 px-4 border text-xs">
+                      <td className="py-2 px-4 border-t border-amber-400">{c.name}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{c.price}</td>
+                      <td className="py-2 px-4 border-t border-amber-400">{c.barcode}</td>
+                      <td className="py-2 px-4 border-t border-amber-400 text-xs">
                         {c.ingredients.map((ing, idx) => (
                           <div key={idx}>{ing.brand} ({ing.volume}ml)</div>
                         ))}
                       </td>
-                      <td className="py-2 px-4 border">
+                      <td className="py-2 px-4 border-t border-amber-400">
                         <button
-                          className="bg-pink-600 text-white px-3 py-1 rounded hover:bg-pink-700"
+                          className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
                           onClick={() => addCocktailToBill(c)}
                           disabled={loading}
                         >
@@ -597,37 +597,37 @@ const Sales = () => {
           {billItems.length === 0 ? (
             <div className="text-gray-500">No items in bill. Add bottles or shots above.</div>
           ) : (
-            <table className="min-w-full bg-white border rounded shadow text-sm mb-2">
+            <table className="min-w-full bg-gray-900 rounded shadow text-sm mb-2">
               <thead>
-                <tr className="bg-blue-50">
-                  <th className="py-1 px-2 border">Brand</th>
-                  <th className="py-1 px-2 border">Type</th>
-                  <th className="py-1 px-2 border">Qty</th>
-                  <th className="py-1 px-2 border">Unit</th>
-                  <th className="py-1 px-2 border">Price</th>
-                  <th className="py-1 px-2 border">Remove</th>
+                <tr className="bg-gray-900">
+                  <th className="py-1 px-2 ">Brand</th>
+                  <th className="py-1 px-2 ">Type</th>
+                  <th className="py-1 px-2 ">Qty</th>
+                  <th className="py-1 px-2 ">Unit</th>
+                  <th className="py-1 px-2 ">Price</th>
+                  <th className="py-1 px-2 ">Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {billItems.map(b => (
                   <tr key={b.itemId} className="text-center">
-                    <td className="py-1 px-2 border">{b.brand}</td>
-                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? `${b.shotSize}ml Shot` : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Cocktail" : ""}</td>
-                    <td className="py-1 px-2 border">
+                    <td className="py-1 px-2 border-t border-amber-400">{b.brand}</td>
+                    <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? `${b.shotSize}ml Shot` : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Cocktail" : ""}</td>
+                    <td className="py-1 px-2 border-t border-amber-400">
                       <input
                         type="number"
                         min="1"
                         value={b.qty}
                         onChange={e => updateBillItemQty(b.itemId, Number(e.target.value))}
-                        className="w-16 px-1 py-0.5 border rounded text-center"
+                        className="w-16 px-2 py-3 border rounded-3xl text-center border-amber-400"
                         disabled={loading}
                       />
                     </td>
-                    <td className="py-1 px-2 border">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? "ml" : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Portion" : ""}</td>
-                    <td className="py-1 px-2 border">{b.price.toLocaleString()}</td>
-                    <td className="py-1 px-2 border">
+                    <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? "ml" : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Portion" : ""}</td>
+                    <td className="py-1 px-2 border-t border-amber-400">{b.price.toLocaleString()}</td>
+                    <td className="py-1 px-2 border-t border-amber-400">
                       <button
-                        className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        className="bg-red-500 text-white px-2 py-1 rounded-3xl hover:bg-red-600"
                         onClick={() => removeBillItem(b.itemId)}
                         disabled={loading}
                       >
@@ -641,7 +641,7 @@ const Sales = () => {
           )}
           <div className="flex justify-end mt-2">
             <button
-              className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+              className="bg-green-600 text-white px-6 py-2 rounded-3xl hover:bg-green-700"
               onClick={handleProcessBill}
               disabled={loading || billItems.length === 0}
             >

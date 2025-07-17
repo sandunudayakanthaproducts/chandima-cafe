@@ -41,7 +41,7 @@ const AppRoutes = () => (
         <Route path="/liquor-add" element={<ProtectedRoute allowedRoles={['admin']}><LiquorAdd /></ProtectedRoute>} />
         <Route path="/user-management" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
         <Route path="/bill-history" element={<ProtectedRoute allowedRoles={['admin']}><BillHistory /></ProtectedRoute>} />
-        <Route path="/monthly-report" element={<ProtectedRoute allowedRoles={['admin']}><MonthlyReport /></ProtectedRoute>} />
+        <Route path="/monthly-report" element={<ProtectedRoute allowedRoles={['admin','worker']}><MonthlyReport /></ProtectedRoute>} />
         <Route path="/bill-history-worker" element={<ProtectedRoute allowedRoles={['admin','worker']}><BillHistoryWorker /></ProtectedRoute>} />
         <Route path="/restaurant-details" element={<ProtectedRoute allowedRoles={['admin']}><RestaurantDetails /></ProtectedRoute>} />
         <Route path="/food-management" element={<ProtectedRoute allowedRoles={['admin']}><FoodManagement /></ProtectedRoute>} />
