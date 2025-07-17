@@ -493,6 +493,7 @@ const Sales = () => {
                         >
                           + Bottle
                         </button>
+                        <span className="ml-2 text-xs text-amber-400 font-semibold">LKR {item.liquor.price}</span>
                       </td>
                       <td className="py-6 px-5  flex flex-wrap gap-2 justify-center border-t border-amber-400 text-center">
                         {Object.keys(item.liquor.shotPrices || {}).map(size => (
