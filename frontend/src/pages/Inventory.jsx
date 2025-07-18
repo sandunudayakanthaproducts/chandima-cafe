@@ -251,15 +251,15 @@ const Inventory = () => {
           <div className="mb-4 flex items-center gap-4">
             <input
               type="text"
-              className="border rounded px-3 py-2 w-full max-w-xs"
+              className="border mx-0.5 rounded-4xl px-6 py-4 w-screen  focus:outline-amber-400 focus:ring-2 focus:ring-amber-400 hover:border-amber-300"
               placeholder="Search by brand or barcode..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <table className="min-w-full bg-white border rounded shadow">
+          <table className="min-w-full bg-gray-900 border rounded shadow">
             <thead>
-              <tr className="bg-blue-100">
+              <tr className="bg-gray-900">
                 <th className="py-2 px-4 border">Brand</th>
                 <th className="py-2 px-4 border">Bottle Size (ml)</th>
                 <th className="py-2 px-4 border">Barcode</th>
@@ -299,12 +299,12 @@ const Inventory = () => {
         {/* Add Modal */}
         {showAddModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-            <div className="bg-white p-6 rounded shadow w-full max-w-sm">
+            <div className="bg-gray-900 p-6 rounded shadow w-full max-w-sm">
               <h2 className="text-xl font-bold mb-4">Add Liquor to Store 1</h2>
-              <form className="space-y-3" onSubmit={handleAdd}>
+              <form className="space-y-3 bg-gray-900" onSubmit={handleAdd}>
                 <div>
                   <label className="block mb-1 font-medium">Brand</label>
-                  <input name="brand" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="w-full px-3 py-2 border rounded" required />
+                  <input name="brand" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="w-full px-3 py-2 border rounded " required />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Bottle Size (ml)</label>
@@ -541,9 +541,9 @@ const Inventory = () => {
         {/* Transfer History Modal */}
         {showTransferHistory && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-            <div className="bg-white p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-gray-900 p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Transfer History</h2>
+                <h2 className="text-xl font-bold">Transfer Historyyy</h2>
                 <button className="text-gray-600 text-2xl font-bold" onClick={() => setShowTransferHistory(false)}>&times;</button>
               </div>
               {/* TransferHistory component or logic goes here */}
@@ -599,19 +599,16 @@ const TransferHistoryModal = ({ onClose }) => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Transfer History</h2>
-        <button className="text-gray-600 text-2xl font-bold" onClick={onClose}>&times;</button>
-      </div>
+     
       {loading ? (
         <div className="text-gray-500">Loading...</div>
       ) : error ? (
         <div className="text-red-500">{error}</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border rounded shadow text-sm">
+          <table className="min-w-full bg-gray-900 border rounded shadow text-sm">
             <thead>
-              <tr className="bg-blue-100">
+              <tr className="bg-gray-900">
                 <th className="py-2 px-4 border">Date</th>
                 <th className="py-2 px-4 border">Brand</th>
                 <th className="py-2 px-4 border">Size (ml)</th>

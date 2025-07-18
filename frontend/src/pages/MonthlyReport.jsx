@@ -13,6 +13,7 @@ const MonthlyReport = () => {
   const [expandedDays, setExpandedDays] = useState({});
   const [cocktailDefs, setCocktailDefs] = useState([]);
   const [store2Inventory, setStore2Inventory] = useState([]);
+  const [transfers, setTransfers] = useState([]); // NEW
 
   // Fetch cocktail definitions once
   useEffect(() => {
@@ -30,6 +31,19 @@ const MonthlyReport = () => {
       .catch(() => setStore2Inventory([]));
   }, []);
 
+  // Fetch Store 2 transfers for the month
+  useEffect(() => {
+    if (!month) return;
+    fetch('/api/transfer')
+      .then(res => res.json())
+      .then(data => {
+        // Only keep transfers to Store 2 and in the selected month
+        const filtered = data.filter(tr => tr.toStore === 2 && tr.createdAt && tr.liquor && tr.liquor.brand && tr.createdAt.startsWith(month));
+        setTransfers(filtered);
+      })
+      .catch(() => setTransfers([]));
+  }, [month]);
+
   // --- Simulate inventory for each day (reverse from current inventory) ---
   const inventoryTimeline = useMemo(() => {
     if (!store2Inventory.length || !bills.length) return {};
@@ -41,6 +55,14 @@ const MonthlyReport = () => {
       const dayKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
       if (!billsByDay[dayKey]) billsByDay[dayKey] = [];
       billsByDay[dayKey].push(bill);
+    });
+    // Group transfers by day and brand
+    const transfersByDayBrand = {};
+    transfers.forEach(tr => {
+      const day = new Date(tr.createdAt).toISOString().slice(0, 10);
+      if (!transfersByDayBrand[day]) transfersByDayBrand[day] = {};
+      if (!transfersByDayBrand[day][tr.liquor.brand]) transfersByDayBrand[day][tr.liquor.brand] = 0;
+      transfersByDayBrand[day][tr.liquor.brand] += tr.quantity;
     });
     // Build a map: brand -> {bottles, openVolume}
     let invMap = {};
@@ -87,10 +109,17 @@ const MonthlyReport = () => {
       });
       // After replay, invMap is now the opening for this day
       const opening = JSON.parse(JSON.stringify(invMap));
+      // Add transfer-in for this day/brand to opening
+      if (transfersByDayBrand[day]) {
+        Object.entries(transfersByDayBrand[day]).forEach(([brand, qty]) => {
+          if (!opening[brand]) opening[brand] = { bottles: 0, openVolume: 0 };
+          opening[brand].bottles += qty;
+        });
+      }
       timeline[day] = { opening, closing };
     });
     return timeline;
-  }, [store2Inventory, bills]);
+  }, [store2Inventory, bills, transfers]);
 
   const fetchReport = async () => {
     if (!month) return;

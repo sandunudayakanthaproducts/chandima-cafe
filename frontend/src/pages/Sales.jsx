@@ -27,6 +27,9 @@ const Sales = () => {
   const searchInputRef = useRef(null);
   const [virtualOpenVolumes, setVirtualOpenVolumes] = useState({});
   const [cocktails, setCocktails] = useState([]); // NEW
+  const [cashGiven, setCashGiven] = useState(''); // Start as empty string
+  // Add a state to track the last non-empty search
+  const [lastSearch, setLastSearch] = useState("");
 
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
@@ -99,6 +102,7 @@ const Sales = () => {
         inventoryId: item._id
       }];
     });
+    setSearch("");
   };
 
   // Add shot to bill
@@ -124,6 +128,7 @@ const Sales = () => {
         shotSize
       }];
     });
+    setSearch("");
   };
 
   // Add food to bill
@@ -147,6 +152,7 @@ const Sales = () => {
         foodId: food._id
       }];
     });
+    setSearch("");
   };
 
   // Add cocktail to bill
@@ -169,6 +175,7 @@ const Sales = () => {
         cocktailId: cocktail._id
       }];
     });
+    setSearch("");
   };
 
   // Remove item from bill
@@ -430,224 +437,274 @@ const Sales = () => {
         {error && <div className="text-red-500 mb-4">{error}</div>}
         {success && <div className="text-green-600 mb-4">{success}</div>}
         {/* Search input */}
-        <div className="mb-4 flex items-center gap-4">
+        <div className="mb-4 flex items-center gap-4 relative">
           <input
             type="text"
             ref={searchInputRef}
             className="border rounded-4xl px-6 py-4 w-screen  focus:outline-amber-400 focus:ring-2 focus:ring-amber-400 hover:border-amber-300"
             placeholder="Scan or search by brand or barcode..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value);
+              if (e.target.value.trim() !== "") {
+                setLastSearch(e.target.value);
+              }
+            }}
+            onFocus={() => setLastSearch("")}
             onKeyDown={e => {
               if (e.key === "Enter") {
                 // Optionally, you could trigger a search or move focus
               }
             }}
           />
+          {search && (
+            <button
+              type="button"
+              className="absolute right-8 text-gray-400 hover:text-red-500 text-xl focus:outline-none"
+              style={{top: '50%', transform: 'translateY(-50%)'}}
+              onClick={() => setSearch("")}
+              tabIndex={-1}
+            >
+              ×
+            </button>
+          )}
         </div>
-        <div className="overflow-x-auto mb-8">
-          {search.trim() === "" ? (
-            <div className="text-gray-500 text-center py-8">Type to search for products by brand or barcode.</div>
-          ) : (
-            <>
-              {/* Liquor Table */}
-              <table className="min-w-full bg-gray-900 rounded shadow mb-7">
-                <thead>
-                  <tr className="bg-gray-900">
-                    <th className="py-2 px-4">Brand</th>
-                    <th className="py-2 px-4 ">Bottle Size (ml)</th>
-                    <th className="py-2 px-4 ">Bottles</th>
-                    <th className="py-2 px-4 ">Open Volume (ml)</th>
-                    <th className="py-2 px-4 ">Shot Prices</th>
-                    <th className="py-2 px-4 ">Add Bottle</th>
-                    <th className="py-2 px-4 ">Add Shot</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inventory.filter(item => {
-                    if (!item || !item.liquor) return false;
-                    const q = search.trim().toLowerCase();
-                    if (!q) return false;
-                    return (
-                      item.liquor.brand.toLowerCase().includes(q) ||
-                      (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
-                    );
-                  }).map((item) => (
-                    <tr key={item._id} className="text-center">
-                      <td className="py-2 px-4 border-t border-amber-400">{item.liquor.brand}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{item.liquor.size}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{virtualOpenVolumes[item._id]?.bottles ?? item.bottles}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0}</td>
-                      <td className="py-2 px-4 border-t border-amber-400 text-xs">
-                        {Object.keys(item.liquor.shotPrices || {}).map(size => (
-                          <div key={size}>
-                            {size}ml: {item.liquor.shotPrices[size]}
-                          </div>
-                        ))}
-                      </td>
-                      <td className="py-2 px-4 border-t border-amber-400">
-                        <button
-                          className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
-                          onClick={() => addBottleToBill(item)}
-                          disabled={loading || item.bottles < 1}
-                        >
-                          + Bottle
-                        </button>
-                        <span className="ml-2 text-xs text-amber-400 font-semibold">LKR {item.liquor.price}</span>
-                      </td>
-                      <td className="py-6 px-5  flex flex-wrap gap-2 justify-center border-t border-amber-400 text-center">
-                        {Object.keys(item.liquor.shotPrices || {}).map(size => (
+        {/* Responsive flex layout for search results and bill */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left: Search Results */}
+          <div className="lg:w-2/3 w-full">
+            <div className="overflow-x-auto mb-8">
+              {(search.trim() === "" && lastSearch.trim() === "") ? (
+                <div className="text-gray-500 text-center py-8">Type to search for products by brand or barcode.</div>
+              ) : (
+                <>
+                  {/* Liquor Table */}
+                  <table className="min-w-full bg-gray-900 rounded shadow mb-7">
+                    <thead>
+                      <tr className="bg-gray-900">
+                        <th className="py-2 px-4">Brand</th>
+                        <th className="py-2 px-4 ">Bottle Size (ml)</th>
+                        <th className="py-2 px-4 ">Bottles</th>
+                        <th className="py-2 px-4 ">Open Volume (ml)</th>
+                        <th className="py-2 px-4 ">Shot Prices</th>
+                        <th className="py-2 px-4 ">Add Bottle</th>
+                        <th className="py-2 px-4 ">Add Shot</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inventory.filter(item => {
+                        if (!item || !item.liquor) return false;
+                        const q = search.trim() !== "" ? search.trim().toLowerCase() : lastSearch.trim().toLowerCase();
+                        if (!q) return false;
+                        return (
+                          item.liquor.brand.toLowerCase().includes(q) ||
+                          (item.liquor.barcode && item.liquor.barcode.toLowerCase().includes(q))
+                        );
+                      }).map((item) => (
+                        <tr key={item._id} className="text-center">
+                          <td className="py-2 px-4 border-t border-amber-400">{item.liquor.brand}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{item.liquor.size}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{virtualOpenVolumes[item._id]?.bottles ?? item.bottles}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0}</td>
+                          <td className="py-2 px-4 border-t border-amber-400 text-xs">
+                            {Object.keys(item.liquor.shotPrices || {}).map(size => (
+                              <div key={size}>
+                                {size}ml: {item.liquor.shotPrices[size]}
+                              </div>
+                            ))}
+                          </td>
+                          <td className="py-2 px-4 border-t border-amber-400">
+                            <button
+                              className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
+                              onClick={() => addBottleToBill(item)}
+                              disabled={loading || item.bottles < 1}
+                            >
+                              + Bottle
+                            </button>
+                            <span className="ml-2 text-xs text-amber-400 font-semibold">LKR {item.liquor.price}</span>
+                          </td>
+                          <td className="py-6 px-5  flex flex-wrap gap-2 justify-center border-t border-amber-400 text-center">
+                            {Object.keys(item.liquor.shotPrices || {}).map(size => (
+                              <button
+                                key={size}
+                                className="bg-emerald-500 text-white px-3 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
+                                onClick={() => addShotToBill(item, Number(size))}
+                                disabled={loading}
+                              >
+                                + {size}ml
+                              </button>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {/* Food Table */}
+                  <table className="min-w-full bg-gray-900  rounded shadow mb-7">
+                    <thead>
+                      <tr className="bg-gray-900">
+                        <th className="py-2 px-4 ">Name</th>
+                        <th className="py-2 px-4">Price</th>
+                        <th className="py-2 px-4">Barcode</th>
+                        <th className="py-2 px-4">Add</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {foods.filter(f => {
+                        const q = search.trim() !== "" ? search.trim().toLowerCase() : lastSearch.trim().toLowerCase();
+                        if (!q) return false;
+                        return (
+                          f.name.toLowerCase().includes(q) ||
+                          (f.barcode && f.barcode.toLowerCase().includes(q))
+                        );
+                      }).map(f => (
+                        <tr key={f._id} className="text-center">
+                          <td className="py-2 px-4 border-t border-amber-400">{f.name}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{f.price}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{f.barcode}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">
+                            <button
+                              className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
+                              onClick={() => addFoodToBill(f)}
+                              disabled={loading}
+                            >
+                              + Add
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {/* Cocktail Table */}
+                  <table className="min-w-full bg-gray-900 rounded shadow mb-6">
+                    <thead>
+                      <tr className="bg-gray-900">
+                        <th className="py-2 px-4 ">Name</th>
+                        <th className="py-2 px-4 ">Price</th>
+                        <th className="py-2 px-4 ">Barcode</th>
+                        <th className="py-2 px-4 ">Ingredients</th>
+                        <th className="py-2 px-4 ">Add</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cocktails.filter(c => {
+                        const q = search.trim() !== "" ? search.trim().toLowerCase() : lastSearch.trim().toLowerCase();
+                        if (!q) return false;
+                        return (
+                          c.name.toLowerCase().includes(q) ||
+                          (c.barcode && c.barcode.toLowerCase().includes(q))
+                        );
+                      }).map(c => (
+                        <tr key={c._id} className="text-center">
+                          <td className="py-2 px-4 border-t border-amber-400">{c.name}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{c.price}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">{c.barcode}</td>
+                          <td className="py-2 px-4 border-t border-amber-400 text-xs">
+                            {c.ingredients.map((ing, idx) => (
+                              <div key={idx}>{ing.brand} ({ing.volume}ml)</div>
+                            ))}
+                          </td>
+                          <td className="py-2 px-4 border-t border-amber-400">
+                            <button
+                              className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
+                              onClick={() => addCocktailToBill(c)}
+                              disabled={loading}
+                            >
+                              + Cocktail
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+          </div>
+          {/* Right: Bill Builder Section */}
+          <div className="lg:w-1/3 w-full mb-8">
+            <h2 className="text-xl font-bold mb-2">Current Bill</h2>
+            {billItems.length === 0 ? (
+              <div className="text-gray-500">No items in bill. Add bottles or shots above.</div>
+            ) : (
+              <>
+                {/* Cash input for customer payment */}
+                <div className="flex items-center mb-2">
+                  <label htmlFor="cashGiven" className="mr-2 font-semibold text-sm text-gray-200">Cash Given:</label>
+                  <input
+                    id="cashGiven"
+                    type="number"
+                    min="0"
+                    value={cashGiven}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || /^\d+$/.test(val)) setCashGiven(val);
+                    }}
+                    className="w-28 px-2 py-1 border rounded-3xl text-right border-amber-400 bg-gray-800 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    placeholder=""
+                  />
+                </div>
+                <table className="min-w-full bg-gray-900 rounded shadow text-sm mb-2">
+                  <thead>
+                    <tr className="bg-gray-900">
+                      <th className="py-1 px-2 ">Brand</th>
+                      <th className="py-1 px-2 ">Type</th>
+                      <th className="py-1 px-2 ">Qty</th>
+                      <th className="py-1 px-2 ">Unit</th>
+                      <th className="py-1 px-2 ">Price</th>
+                      <th className="py-1 px-2 ">Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {billItems.map(b => (
+                      <tr key={b.itemId} className="text-center">
+                        <td className="py-1 px-2 border-t border-amber-400">{b.brand}</td>
+                        <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? `${b.shotSize}ml Shot` : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Cocktail" : ""}</td>
+                        <td className="py-1 px-2 border-t border-amber-400">
+                          <input
+                            type="number"
+                            min="1"
+                            value={b.qty}
+                            onChange={e => updateBillItemQty(b.itemId, Number(e.target.value))}
+                            className="w-16 px-2 py-3 border rounded-3xl text-center border-amber-400"
+                            disabled={loading}
+                          />
+                        </td>
+                        <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? "ml" : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Portion" : ""}</td>
+                        <td className="py-1 px-2 border-t border-amber-400">{b.price.toLocaleString()}</td>
+                        <td className="py-1 px-2 border-t border-amber-400">
                           <button
-                            key={size}
-                            className="bg-emerald-500 text-white px-3 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
-                            onClick={() => addShotToBill(item, Number(size))}
+                            className="bg-red-500 text-white px-2 py-1 rounded-3xl hover:bg-red-600"
+                            onClick={() => removeBillItem(b.itemId)}
                             disabled={loading}
                           >
-                            + {size}ml
+                            Remove
                           </button>
-                        ))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {/* Food Table */}
-              <table className="min-w-full bg-gray-900  rounded shadow mb-7">
-                <thead>
-                  <tr className="bg-gray-900">
-                    <th className="py-2 px-4 ">Name</th>
-                    <th className="py-2 px-4">Price</th>
-                    <th className="py-2 px-4">Barcode</th>
-                    <th className="py-2 px-4">Add</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {foods.filter(f => {
-                    const q = search.trim().toLowerCase();
-                    if (!q) return false;
-                    return (
-                      f.name.toLowerCase().includes(q) ||
-                      (f.barcode && f.barcode.toLowerCase().includes(q))
-                    );
-                  }).map(f => (
-                    <tr key={f._id} className="text-center">
-                      <td className="py-2 px-4 border-t border-amber-400">{f.name}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{f.price}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{f.barcode}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">
-                        <button
-                          className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
-                          onClick={() => addFoodToBill(f)}
-                          disabled={loading}
-                        >
-                          + Add
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {/* Cocktail Table */}
-              <table className="min-w-full bg-gray-900 rounded shadow mb-6">
-                <thead>
-                  <tr className="bg-gray-900">
-                    <th className="py-2 px-4 ">Name</th>
-                    <th className="py-2 px-4 ">Price</th>
-                    <th className="py-2 px-4 ">Barcode</th>
-                    <th className="py-2 px-4 ">Ingredients</th>
-                    <th className="py-2 px-4 ">Add</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cocktails.filter(c => {
-                    const q = search.trim().toLowerCase();
-                    if (!q) return false;
-                    return (
-                      c.name.toLowerCase().includes(q) ||
-                      (c.barcode && c.barcode.toLowerCase().includes(q))
-                    );
-                  }).map(c => (
-                    <tr key={c._id} className="text-center">
-                      <td className="py-2 px-4 border-t border-amber-400">{c.name}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{c.price}</td>
-                      <td className="py-2 px-4 border-t border-amber-400">{c.barcode}</td>
-                      <td className="py-2 px-4 border-t border-amber-400 text-xs">
-                        {c.ingredients.map((ing, idx) => (
-                          <div key={idx}>{ing.brand} ({ing.volume}ml)</div>
-                        ))}
-                      </td>
-                      <td className="py-2 px-4 border-t border-amber-400">
-                        <button
-                          className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
-                          onClick={() => addCocktailToBill(c)}
-                          disabled={loading}
-                        >
-                          + Cocktail
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-        </div>
-        {/* Bill Builder Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold mb-2">Current Bill</h2>
-          {billItems.length === 0 ? (
-            <div className="text-gray-500">No items in bill. Add bottles or shots above.</div>
-          ) : (
-            <table className="min-w-full bg-gray-900 rounded shadow text-sm mb-2">
-              <thead>
-                <tr className="bg-gray-900">
-                  <th className="py-1 px-2 ">Brand</th>
-                  <th className="py-1 px-2 ">Type</th>
-                  <th className="py-1 px-2 ">Qty</th>
-                  <th className="py-1 px-2 ">Unit</th>
-                  <th className="py-1 px-2 ">Price</th>
-                  <th className="py-1 px-2 ">Remove</th>
-                </tr>
-              </thead>
-              <tbody>
-                {billItems.map(b => (
-                  <tr key={b.itemId} className="text-center">
-                    <td className="py-1 px-2 border-t border-amber-400">{b.brand}</td>
-                    <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? `${b.shotSize}ml Shot` : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Cocktail" : ""}</td>
-                    <td className="py-1 px-2 border-t border-amber-400">
-                      <input
-                        type="number"
-                        min="1"
-                        value={b.qty}
-                        onChange={e => updateBillItemQty(b.itemId, Number(e.target.value))}
-                        className="w-16 px-2 py-3 border rounded-3xl text-center border-amber-400"
-                        disabled={loading}
-                      />
-                    </td>
-                    <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? "ml" : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Portion" : ""}</td>
-                    <td className="py-1 px-2 border-t border-amber-400">{b.price.toLocaleString()}</td>
-                    <td className="py-1 px-2 border-t border-amber-400">
-                      <button
-                        className="bg-red-500 text-white px-2 py-1 rounded-3xl hover:bg-red-600"
-                        onClick={() => removeBillItem(b.itemId)}
-                        disabled={loading}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <div className="flex justify-end mt-2">
-            <button
-              className="bg-green-600 text-white px-6 py-2 rounded-3xl hover:bg-green-700"
-              onClick={handleProcessBill}
-              disabled={loading || billItems.length === 0}
-            >
-              {loading ? "Processing..." : "Process Bill & Print"}
-            </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex justify-end mb-2">
+                  <span className="font-bold text-lg text-amber-400">Total: {billItems.reduce((sum, b) => sum + b.price, 0).toLocaleString()}</span>
+                </div>
+                {/* Show change to give to customer */}
+                <div className="flex justify-end mb-2">
+                  <span className="font-semibold text-md text-green-400">
+                    Change: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - billItems.reduce((sum, b) => sum + b.price, 0)).toLocaleString() : '0'}
+                  </span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-end mt-2">
+              <button
+                className="bg-green-600 text-white px-6 py-2 rounded-3xl hover:bg-green-700"
+                onClick={handleProcessBill}
+                disabled={loading || billItems.length === 0}
+              >
+                {loading ? "Processing..." : "Process Bill & Print"}
+              </button>
+            </div>
           </div>
         </div>
         {/* Bill Modal */}
@@ -658,48 +715,65 @@ const Sales = () => {
                 <button onClick={handlePrint} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Print</button>
                 <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Download PDF</button>
               </div>
-              <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif'}}>
-                <h2 style={{fontWeight:'bold',fontSize:'1.25rem',marginBottom:'0.5rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
+              <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif',width:'70mm',maxWidth:'70mm',minWidth:'70mm',padding:'0.5em',fontSize:'11px'}}>
+                <h2 style={{fontWeight:'bold',fontSize:'1.1rem',marginBottom:'0.5rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
                 <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
                 {/* Restaurant details below heading */}
                 <div style={{marginBottom:'0.5rem',textAlign:'center'}}>
-                  <div style={{fontWeight:'bold',fontSize:'1.1rem',lineHeight:1.3,padding:'0.2em 0'}}>{restaurant.name}</div>
-                  <div style={{fontSize:'0.75rem',color:'#333',whiteSpace:'pre-line'}}>{restaurant.address}</div>
-                  <div style={{fontSize:'0.75rem',color:'#333'}}>{restaurant.phone}</div>
-                  <div style={{fontSize:'0.75rem',color:'#333'}}>{restaurant.email}</div>
+                  <div style={{fontWeight:'bold',fontSize:'1rem',lineHeight:1.3,padding:'0.2em 0'}}>{restaurant.name}</div>
+                  <div style={{fontSize:'0.7rem',color:'#333',whiteSpace:'pre-line'}}>{restaurant.address}</div>
+                  <div style={{fontSize:'0.7rem',color:'#333'}}>{restaurant.phone}</div>
+                  <div style={{fontSize:'0.7rem',color:'#333'}}>{restaurant.email}</div>
                 </div>
                 <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <div style={{marginBottom:'0.5rem',fontSize:'0.75rem',color:'#555'}}>Bill ID: {bill.billId}</div>
-                <div style={{marginBottom:'0.5rem',fontSize:'0.9rem'}}>{bill.time}</div>
+                <div style={{marginBottom:'0.5rem',fontSize:'0.7rem',color:'#555'}}>Bill ID: {bill.billId}</div>
+                <div style={{marginBottom:'0.5rem',fontSize:'0.8rem'}}>{bill.time}</div>
                 <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <table style={{width:'100%',marginBottom:'1rem',fontSize:'0.9rem'}}>
+                <table style={{width:'100%',marginBottom:'1rem',fontSize:'0.8rem',tableLayout:'fixed',wordBreak:'break-word'}}>
                   <thead>
                     <tr style={{borderBottom:'1px solid #bbb'}}>
                       <th style={{textAlign:'left'}}>Item</th>
                       <th style={{textAlign:'right'}}>Qty</th>
+                      <th style={{textAlign:'right'}}>Unit Price</th>
                       <th style={{textAlign:'right'}}>Price</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {bill.items.map((item, idx) => (
-                      <tr key={idx}>
-                        <td>{
-                          item.type === "shot"
-                            ? `${item.brand} (${item.qty} x ${item.shotSize}ml)`
-                            : item.type === "food"
-                            ? item.brand
-                            : item.type === "cocktail"
-                            ? `${item.brand} (${item.qty} x ${Array.isArray(item.ingredients) ? item.ingredients.length : 1} Portion)`
-                            : item.brand
-                        }</td>
-                        <td style={{textAlign:'right'}}>{item.qty}</td>
-                        <td style={{textAlign:'right'}}>{item.price.toLocaleString()}</td>
-                      </tr>
-                    ))}
+                    {bill.items.map((item, idx) => {
+                      let unitPrice = 0;
+                      if (item.type === 'bottle') {
+                        unitPrice = item.price / item.qty;
+                      } else if (item.type === 'shot') {
+                        unitPrice = item.price / item.qty;
+                      } else if (item.type === 'food') {
+                        unitPrice = item.price / item.qty;
+                      } else if (item.type === 'cocktail') {
+                        unitPrice = item.price / item.qty;
+                      }
+                      return (
+                        <tr key={idx}>
+                          <td style={{wordBreak:'break-word'}}>{
+                            item.type === "shot"
+                              ? `${item.brand} (${item.qty} x ${item.shotSize}ml)`
+                              : item.type === "food"
+                              ? item.brand
+                              : item.type === "cocktail"
+                              ? `${item.brand} (${item.qty} x ${Array.isArray(item.ingredients) ? item.ingredients.length : 1} Portion)`
+                              : item.brand
+                          }</td>
+                          <td style={{textAlign:'right'}}>{item.qty}</td>
+                          <td style={{textAlign:'right'}}>{unitPrice.toLocaleString()}</td>
+                          <td style={{textAlign:'right'}}>{item.price.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1rem'}}>Total: {bill.total.toLocaleString()}</div>
+                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1rem',fontSize:'0.9rem'}}>Total: {bill.total.toLocaleString()}</div>
+                {/* Cash and Change for print */}
+                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.2rem'}}>Cash: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
+                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.5rem'}}>Change: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
               </div>
               <div className="flex justify-end gap-2">
                 <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded">Close</button>

@@ -407,12 +407,12 @@ const BillHistory = () => {
             <tbody>
               {filteredBills.map(bill => (
                 <React.Fragment key={bill.billId}>
-                  <tr className="text-center bg-gray-50">
+                  <tr className="text-center bg-gray-900">
                     <td className="py-2 px-4 border font-mono text-xs align-top">{bill.billId}</td>
                     <td className="py-2 px-4 border align-top">{bill.total?.toLocaleString()}</td>
                     <td className="py-2 px-4 border align-top">{bill.time ? new Date(bill.time).toLocaleString() : "-"}</td>
                     <td className="py-2 px-4 border align-top">
-                      <table className="w-full text-xs bg-white border rounded">
+                      <table className="w-full text-xs bg-gray-900 border rounded">
                         <thead>
                           <tr className="bg-blue-50">
                             <th className="py-1 px-2 border">Brand</th>
