@@ -231,14 +231,14 @@ const Inventory = () => {
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold">Inventory</h1>
             <button
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+              className="bg-gray-600 text-white px-4 py-2 rounded-3xl hover:bg-gray-700"
               onClick={() => setShowTransferHistory(true)}
             >
               Transfer History
             </button>
           </div>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded-3xl hover:bg-blue-700"
             onClick={() => { setShowAddModal(true); setForm({ brand: "", size: "", barcode: "", price: "", bottles: "", shotPrices: {} }); setCustomShotSizes([]); }}
           >
             + Add Liquor to Store 1
@@ -287,9 +287,9 @@ const Inventory = () => {
                   <td className="py-2 px-4 border">{row.bottles}</td>
                   <td className="py-2 px-4 border">{store2Map[row.liquor._id] || 0}</td>
                   <td className="py-2 px-4 border flex gap-2 justify-center">
-                    <button className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600" onClick={() => openEdit(row)}>Edit</button>
-                    <button className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onClick={() => handleDelete(row)}>Delete</button>
-                    <button className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700" onClick={() => openTransfer(row)}>Transfer</button>
+                    <button className="bg-yellow-500 text-white px-3 py-1 rounded-3xl hover:bg-yellow-600" onClick={() => openEdit(row)}>Edit</button>
+                    <button className="bg-red-600 text-white px-3 py-1 rounded-3xl hover:bg-red-700" onClick={() => handleDelete(row)}>Delete</button>
+                    <button className="bg-green-600 text-white px-3 py-1 rounded-3xl hover:bg-green-700" onClick={() => openTransfer(row)}>Transfer</button>
                   </td>
                 </tr>
               ))}
@@ -299,16 +299,16 @@ const Inventory = () => {
         {/* Add Modal */}
         {showAddModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-            <div className="bg-gray-900 p-6 rounded shadow w-full max-w-sm">
+            <div className="bg-gray-900 p-6 rounded shadow w-full ">
               <h2 className="text-xl font-bold mb-4">Add Liquor to Store 1</h2>
               <form className="space-y-3 bg-gray-900" onSubmit={handleAdd}>
                 <div>
                   <label className="block mb-1 font-medium">Brand</label>
-                  <input name="brand" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="w-full px-3 py-2 border rounded " required />
+                  <input name="brand" value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="w-full px-3 py-2 border rounded-3xl " required />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Bottle Size (ml)</label>
-                  <input name="size" type="number" value={form.size} onChange={e => setForm({ ...form, size: e.target.value })} className="w-full px-3 py-2 border rounded" required />
+                  <input name="size" type="number" value={form.size} onChange={e => setForm({ ...form, size: e.target.value })} className="w-full px-3 py-2 border rounded-3xl " required />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Barcode</label>
@@ -317,7 +317,7 @@ const Inventory = () => {
                     ref={barcodeInputRef}
                     value={form.barcode}
                     onChange={e => setForm({ ...form, barcode: e.target.value })}
-                    className="w-full px-3 py-2 border rounded"
+                    className="w-full px-3 py-2 border rounded-3xl"
                     required
                     placeholder="Scan or enter barcode"
                     onKeyDown={e => {
@@ -330,11 +330,11 @@ const Inventory = () => {
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Bottle Price</label>
-                  <input name="price" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2 border rounded" required />
+                  <input name="price" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2 border rounded-3xl" required />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Initial Quantity</label>
-                  <input name="bottles" type="number" value={form.bottles} onChange={e => setForm({ ...form, bottles: e.target.value })} className="w-full px-3 py-2 border rounded" required />
+                  <input name="bottles" type="number" value={form.bottles} onChange={e => setForm({ ...form, bottles: e.target.value })} className="w-full px-3 py-2 border rounded-3xl" required />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Shot Prices (per size)</label>
@@ -344,7 +344,7 @@ const Inventory = () => {
                       <span>{size}ml:</span>
                       <input
                         type="number"
-                        className="border rounded px-2 py-1 w-24"
+                        className="border  rounded-3xl px-2 py-1 "
                         value={form.shotPrices[size] || ""}
                         onChange={e => handleShotPriceChange(size, e.target.value)}
                         min="0"
@@ -400,7 +400,7 @@ const Inventory = () => {
                       }}>×</button>
                     </div>
                   ))}
-                  <button type="button" className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs mt-2" onClick={() => setCustomShotSizes(sizes => [...sizes, ""])}>+ Add Shot Size</button>
+                  <button type="button" className="bg-blue-200 text-blue-800 px-2 py-1 rounded-3xl text-xs mt-2" onClick={() => setCustomShotSizes(sizes => [...sizes, ""])}>+ Add Shot Size</button>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <button type="button" className="bg-gray-400 text-white px-4 py-2 rounded" onClick={() => setShowAddModal(false)}>Cancel</button>
@@ -541,9 +541,9 @@ const Inventory = () => {
         {/* Transfer History Modal */}
         {showTransferHistory && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-            <div className="bg-gray-900 p-6 rounded shadow w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-gray-900 p-6 rounded shadow w-full  max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Transfer Historyyy</h2>
+                <h2 className="text-xl font-bold">Transfer History</h2>
                 <button className="text-gray-600 text-2xl font-bold" onClick={() => setShowTransferHistory(false)}>&times;</button>
               </div>
               {/* TransferHistory component or logic goes here */}
@@ -631,7 +631,7 @@ const TransferHistoryModal = ({ onClose }) => {
                   <td className="py-2 px-4 border">{t.user || "-"}</td>
                   <td className="py-2 px-4 border">
                     <button
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      className="bg-red-600 text-white px-3 py-1 rounded-3xl hover:bg-red-700"
                       onClick={() => handleDelete(t._id)}
                       disabled={deletingId === t._id}
                     >
@@ -644,7 +644,7 @@ const TransferHistoryModal = ({ onClose }) => {
           </table>
         </div>
       )}
-      <button className="mt-4 bg-gray-400 text-white px-4 py-2 rounded" onClick={onClose}>Close</button>
+      <button className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-3xl hover:bg-gray-500" onClick={onClose}>Close</button>
     </div>
   );
 }; 

@@ -509,19 +509,19 @@ const Sales = () => {
                           <td className="py-2 px-4 border-t border-amber-400 text-xs">
                             {Object.keys(item.liquor.shotPrices || {}).map(size => (
                               <div key={size}>
-                                {size}ml: {item.liquor.shotPrices[size]}
+                                {size}ml:LKR {item.liquor.shotPrices[size]}
                               </div>
                             ))}
                           </td>
-                          <td className="py-2 px-4 border-t border-amber-400">
+                          <td className="py-2 px-0.5 border-t border-amber-400">
                             <button
-                              className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
+                              className="bg-emerald-500 text-white px-6 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
                               onClick={() => addBottleToBill(item)}
                               disabled={loading || item.bottles < 1}
                             >
-                              + Bottle
-                            </button>
-                            <span className="ml-2 text-xs text-amber-400 font-semibold">LKR {item.liquor.price}</span>
+                              Add
+                            </button><br/>
+                            <span className=" text-xs text-amber-400 font-semibold">LKR {item.liquor.price}</span>
                           </td>
                           <td className="py-6 px-5  flex flex-wrap gap-2 justify-center border-t border-amber-400 text-center">
                             {Object.keys(item.liquor.shotPrices || {}).map(size => (
@@ -560,7 +560,7 @@ const Sales = () => {
                       }).map(f => (
                         <tr key={f._id} className="text-center">
                           <td className="py-2 px-4 border-t border-amber-400">{f.name}</td>
-                          <td className="py-2 px-4 border-t border-amber-400">{f.price}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">LKR {f.price}</td>
                           <td className="py-2 px-4 border-t border-amber-400">{f.barcode}</td>
                           <td className="py-2 px-4 border-t border-amber-400">
                             <button
@@ -597,7 +597,7 @@ const Sales = () => {
                       }).map(c => (
                         <tr key={c._id} className="text-center">
                           <td className="py-2 px-4 border-t border-amber-400">{c.name}</td>
-                          <td className="py-2 px-4 border-t border-amber-400">{c.price}</td>
+                          <td className="py-2 px-4 border-t border-amber-400">LKR {c.price}</td>
                           <td className="py-2 px-4 border-t border-amber-400">{c.barcode}</td>
                           <td className="py-2 px-4 border-t border-amber-400 text-xs">
                             {c.ingredients.map((ing, idx) => (
@@ -640,7 +640,7 @@ const Sales = () => {
                       const val = e.target.value;
                       if (val === '' || /^\d+$/.test(val)) setCashGiven(val);
                     }}
-                    className="w-28 px-2 py-1 border rounded-3xl text-right border-amber-400 bg-gray-800 text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    className="w-28 px-2 py-1 border rounded-3xl text-right border-amber-400 bg-black text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     placeholder=""
                   />
                 </div>
@@ -651,7 +651,7 @@ const Sales = () => {
                       <th className="py-1 px-2 ">Type</th>
                       <th className="py-1 px-2 ">Qty</th>
                       <th className="py-1 px-2 ">Unit</th>
-                      <th className="py-1 px-2 ">Price</th>
+                      <th className="py-1 px-2 ">Price LKR</th>
                       <th className="py-1 px-2 ">Remove</th>
                     </tr>
                   </thead>
@@ -686,12 +686,12 @@ const Sales = () => {
                   </tbody>
                 </table>
                 <div className="flex justify-end mb-2">
-                  <span className="font-bold text-lg text-amber-400">Total: {billItems.reduce((sum, b) => sum + b.price, 0).toLocaleString()}</span>
+                  <span className="font-bold text-lg text-amber-400">Total: LKR {billItems.reduce((sum, b) => sum + b.price, 0).toLocaleString()}</span>
                 </div>
                 {/* Show change to give to customer */}
                 <div className="flex justify-end mb-2">
                   <span className="font-semibold text-md text-green-400">
-                    Change: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - billItems.reduce((sum, b) => sum + b.price, 0)).toLocaleString() : '0'}
+                    Change:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - billItems.reduce((sum, b) => sum + b.price, 0)).toLocaleString() : '0'}
                   </span>
                 </div>
               </>
@@ -712,8 +712,8 @@ const Sales = () => {
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
             <div className="bg-white p-6 rounded shadow w-full max-w-sm">
               <div className="flex justify-end gap-2 mb-2 print:hidden">
-                <button onClick={handlePrint} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Print</button>
-                <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Download PDF</button>
+                <button onClick={handlePrint} className="bg-blue-600 text-white px-6 py-2 rounded-3xl hover:bg-blue-700">Print</button>
+                <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded-3xl hover:bg-green-700">Download PDF</button>
               </div>
               <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif',width:'70mm',maxWidth:'70mm',minWidth:'70mm',padding:'0.5em',fontSize:'11px'}}>
                 <h2 style={{fontWeight:'bold',fontSize:'1.1rem',marginBottom:'0.5rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
@@ -762,21 +762,21 @@ const Sales = () => {
                               : item.brand
                           }</td>
                           <td style={{textAlign:'right'}}>{item.qty}</td>
-                          <td style={{textAlign:'right'}}>{unitPrice.toLocaleString()}</td>
-                          <td style={{textAlign:'right'}}>{item.price.toLocaleString()}</td>
+                          <td style={{textAlign:'right'}}>LKR {unitPrice.toLocaleString()}</td>
+                          <td style={{textAlign:'right'}}>LKR {item.price.toLocaleString()}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
                 <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1rem',fontSize:'0.9rem'}}>Total: {bill.total.toLocaleString()}</div>
+                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1rem',fontSize:'0.9rem'}}>Total:LKR {bill.total.toLocaleString()}</div>
                 {/* Cash and Change for print */}
-                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.2rem'}}>Cash: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
-                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.5rem'}}>Change: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
+                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.2rem'}}>Cash:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
+                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.5rem'}}>Change:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
               </div>
               <div className="flex justify-end gap-2">
-                <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded">Close</button>
+                <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded-3xl hover:bg-gray-500">Close</button>
               </div>
             </div>
           </div>
