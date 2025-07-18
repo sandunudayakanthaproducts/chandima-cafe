@@ -1,4 +1,4 @@
-import Sale from '../models/Sale.js';
+import Sale from './models/Sale.js';
 import { connectToDatabase } from './db.js';
 
 export default async function handler(req, res) {

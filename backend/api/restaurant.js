@@ -1,4 +1,4 @@
-import Restaurant from '../models/Restaurant.js';
+import Restaurant from './models/Restaurant.js';
 import { connectToDatabase } from './db.js';
 
 export default async function handler(req, res) {

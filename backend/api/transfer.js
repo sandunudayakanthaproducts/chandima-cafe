@@ -1,5 +1,5 @@
-import Inventory from '../models/Inventory.js';
-import Transfer from '../models/Transfer.js';
+import Inventory from './models/Inventory.js';
+import Transfer from './models/Transfer.js';
 import { connectToDatabase } from './db.js';
 
 export default async function handler(req, res) {

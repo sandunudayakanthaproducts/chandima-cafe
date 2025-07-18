@@ -1,4 +1,4 @@
-import Liquor from '../models/Liquor.js';
+import Liquor from './models/Liquor.js';
 import { connectToDatabase } from './db.js';
 
 export default async function handler(req, res) {

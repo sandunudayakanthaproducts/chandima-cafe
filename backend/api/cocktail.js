@@ -1,4 +1,4 @@
-import Cocktail from '../models/Cocktail.js';
+import Cocktail from './models/Cocktail.js';
 import { connectToDatabase } from './db.js';
 
 export default async function handler(req, res) {

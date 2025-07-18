@@ -1,5 +1,3 @@
-NOTE: Backend API and models have been merged into this project under /api and /api/models for Vercel deployment.
-
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

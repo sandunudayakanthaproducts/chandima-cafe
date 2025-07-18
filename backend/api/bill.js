@@ -1,4 +1,4 @@
-import Bill from '../models/Bill.js';
+import Bill from './models/Bill.js';
 import { connectToDatabase } from './db.js';
 
 export default async function handler(req, res) {
