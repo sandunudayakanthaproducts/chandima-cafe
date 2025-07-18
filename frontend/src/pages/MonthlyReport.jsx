@@ -15,9 +15,11 @@ const MonthlyReport = () => {
   const [store2Inventory, setStore2Inventory] = useState([]);
   const [transfers, setTransfers] = useState([]); // NEW
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   // Fetch cocktail definitions once
   useEffect(() => {
-    fetch('/api/cocktail')
+    fetch(apiUrl('/cocktail'))
       .then(res => res.json())
       .then(setCocktailDefs)
       .catch(() => setCocktailDefs([]));
@@ -25,7 +27,7 @@ const MonthlyReport = () => {
 
   // Fetch Store 2 inventory once
   useEffect(() => {
-    fetch('/api/inventory?store=2')
+    fetch(apiUrl('/inventory?store=2'))
       .then(res => res.json())
       .then(setStore2Inventory)
       .catch(() => setStore2Inventory([]));
@@ -34,7 +36,7 @@ const MonthlyReport = () => {
   // Fetch Store 2 transfers for the month
   useEffect(() => {
     if (!month) return;
-    fetch('/api/transfer')
+    fetch(apiUrl('/transfer'))
       .then(res => res.json())
       .then(data => {
         // Only keep transfers to Store 2 and in the selected month
@@ -126,7 +128,7 @@ const MonthlyReport = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/bill?month=${month}`);
+      const res = await fetch(apiUrl(`/bill?month=${month}`));
       if (!res.ok) throw new Error("Failed to fetch report");
       const data = await res.json();
       setBills(data);

@@ -13,8 +13,10 @@ const FoodManagement = () => {
 
   const barcodeInputRef = useRef(null);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   const fetchFoods = async () => {
-    const res = await fetch("/api/food");
+    const res = await fetch(apiUrl("/food"));
     const data = await res.json();
     setFoods(data);
   };
@@ -66,7 +68,7 @@ const FoodManagement = () => {
     setLoading(true);
     try {
       const method = editId ? "PUT" : "POST";
-      const url = editId ? `/api/food/${editId}` : "/api/food";
+      const url = editId ? apiUrl(`/food/${editId}`) : apiUrl("/food");
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -89,7 +91,7 @@ const FoodManagement = () => {
     setError("");
     setSuccess("");
     try {
-      const res = await fetch(`/api/food/${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/food/${id}`), { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       setSuccess("Deleted");
       fetchFoods();

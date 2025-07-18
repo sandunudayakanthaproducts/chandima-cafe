@@ -27,11 +27,13 @@ const Inventory = () => {
 
   const barcodeInputRef = useRef(null);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   // Fetch inventory for Store 1 and Store 2
   const fetchInventories = async () => {
     const [res1, res2] = await Promise.all([
-      fetch("/api/inventory?store=1"),
-      fetch("/api/inventory?store=2"),
+      fetch(apiUrl("/inventory?store=1")),
+      fetch(apiUrl("/inventory?store=2")),
     ]);
     const data1 = await res1.json();
     const data2 = await res2.json();
@@ -66,7 +68,7 @@ const Inventory = () => {
     setLoading(true);
     try {
       // 1. Create liquor
-      const liquorRes = await fetch("/api/liquor", {
+      const liquorRes = await fetch(apiUrl("/liquor"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,7 +82,7 @@ const Inventory = () => {
       const liquorData = await liquorRes.json();
       if (!liquorRes.ok) throw new Error(liquorData.message || "Error adding liquor");
       // 2. Add inventory for Store 1
-      const invRes = await fetch("/api/inventory/add", {
+      const invRes = await fetch(apiUrl("/inventory/add"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -110,7 +112,7 @@ const Inventory = () => {
     setLoading(true);
     try {
       // 1. Update liquor
-      const liquorRes = await fetch(`/api/liquor/${editRow.liquor._id}`, {
+      const liquorRes = await fetch(`${apiUrl(`/liquor/${editRow.liquor._id}`)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -124,7 +126,7 @@ const Inventory = () => {
       const liquorData = await liquorRes.json();
       if (!liquorRes.ok) throw new Error(liquorData.message || "Error updating liquor");
       // 2. Update inventory
-      const invRes = await fetch(`/api/inventory/${editRow._id}`, {
+      const invRes = await fetch(`${apiUrl(`/inventory/${editRow._id}`)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bottles: Number(form.bottles) }),
@@ -149,8 +151,8 @@ const Inventory = () => {
     setSuccess("");
     setLoading(true);
     try {
-      await fetch(`/api/liquor/${row.liquor._id}`, { method: "DELETE" });
-      await fetch(`/api/inventory/${row._id}`, { method: "DELETE" });
+      await fetch(`${apiUrl(`/liquor/${row.liquor._id}`)}`, { method: "DELETE" });
+      await fetch(`${apiUrl(`/inventory/${row._id}`)}`, { method: "DELETE" });
       setSuccess("Liquor and inventory deleted");
       fetchInventories();
     } catch (err) {
@@ -202,7 +204,7 @@ const Inventory = () => {
     setSuccess("");
     setLoading(true);
     try {
-      const res = await fetch("/api/transfer", {
+      const res = await fetch(apiUrl("/transfer"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -586,7 +588,7 @@ const TransferHistoryModal = ({ onClose }) => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/transfer");
+        const res = await fetch(apiUrl("/transfer"));
         if (!res.ok) throw new Error("Failed to fetch transfer history");
         const data = await res.json();
         setTransfers(data.reverse()); // Most recent first
@@ -603,7 +605,7 @@ const TransferHistoryModal = ({ onClose }) => {
     if (!window.confirm("Delete this transfer record?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/transfer/${id}`, { method: "DELETE" });
+      const res = await fetch(`${apiUrl(`/transfer/${id}`)}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete transfer");
       setTransfers(prev => prev.filter(t => t._id !== id));
     } catch (err) {

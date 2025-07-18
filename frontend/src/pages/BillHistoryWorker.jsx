@@ -22,10 +22,12 @@ const BillHistoryWorker = () => {
   const cocktailCache = useRef({});
   const [cocktailDefs, setCocktailDefs] = useState([]);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/bill");
+      const res = await fetch(apiUrl("/bill"));
       const data = await res.json();
       setBills(data);
     } catch (err) {
@@ -38,8 +40,8 @@ const BillHistoryWorker = () => {
   const fetchInventories = async () => {
     try {
       const [res1, res2] = await Promise.all([
-        fetch("/api/inventory?store=1"),
-        fetch("/api/inventory?store=2"),
+        fetch(apiUrl("/inventory?store=1")),
+        fetch(apiUrl("/inventory?store=2")),
       ]);
       const data1 = await res1.json();
       const data2 = await res2.json();
@@ -60,7 +62,7 @@ const BillHistoryWorker = () => {
   }, [bills]);
 
   useEffect(() => {
-    fetch('/api/cocktail')
+    fetch(apiUrl('/cocktail'))
       .then(res => res.json())
       .then(setCocktailDefs)
       .catch(() => setCocktailDefs([]));

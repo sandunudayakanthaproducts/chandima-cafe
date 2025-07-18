@@ -13,10 +13,12 @@ const RestaurantDetails = () => {
   const [error, setError] = useState("");
   const [hasDetails, setHasDetails] = useState(false);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        const res = await fetch("/api/restaurant");
+        const res = await fetch(apiUrl("/restaurant"));
         if (!res.ok) return;
         const data = await res.json();
         setDetails(data);
@@ -38,7 +40,7 @@ const RestaurantDetails = () => {
     try {
       let payload = { ...details };
       const method = hasDetails ? "PUT" : "POST";
-      const res = await fetch("/api/restaurant", {
+      const res = await fetch(apiUrl("/restaurant"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -59,7 +61,7 @@ const RestaurantDetails = () => {
     setSuccess("");
     setError("");
     try {
-      const res = await fetch("/api/restaurant", { method: "DELETE" });
+      const res = await fetch(apiUrl("/restaurant"), { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete details");
       setDetails({ name: "", phone: "", address: "", email: "" });
       setHasDetails(false);

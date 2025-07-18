@@ -22,10 +22,12 @@ const BillHistory = () => {
   const cocktailCache = useRef({}); // NEW: cache for fetched cocktails
   const [cocktailDefs, setCocktailDefs] = useState([]); // Add this state
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/bill");
+      const res = await fetch(apiUrl("/bill"));
       const data = await res.json();
       setBills(data);
     } catch (err) {
@@ -38,8 +40,8 @@ const BillHistory = () => {
   const fetchInventories = async () => {
     try {
       const [res1, res2] = await Promise.all([
-        fetch("/api/inventory?store=1"),
-        fetch("/api/inventory?store=2"),
+        fetch(apiUrl("/inventory?store=1")),
+        fetch(apiUrl("/inventory?store=2")),
       ]);
       const data1 = await res1.json();
       const data2 = await res2.json();
@@ -62,7 +64,7 @@ const BillHistory = () => {
 
   useEffect(() => {
     // Fetch all cocktail definitions once
-    fetch('/api/cocktail')
+    fetch(apiUrl('/cocktail'))
       .then(res => res.json())
       .then(setCocktailDefs)
       .catch(() => setCocktailDefs([]));
@@ -182,7 +184,7 @@ const BillHistory = () => {
     setBillSales([]);
     setLoading(true);
     try {
-      const res = await fetch(`/api/bill/${billId}`);
+      const res = await fetch(apiUrl(`/bill/${billId}`));
       const data = await res.json();
       setBillSales(data?.items || []);
     } catch (err) {
@@ -197,7 +199,7 @@ const BillHistory = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/bill/${billId}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/bill/${billId}`), { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message || "Failed to delete bill");

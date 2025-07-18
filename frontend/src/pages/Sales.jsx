@@ -45,9 +45,12 @@ const Sales = () => {
     localStorage.setItem('heldBills', JSON.stringify(heldBills));
   }, [heldBills]);
 
+  // Helper for API URL
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
-    const res = await fetch("/api/inventory?store=2");
+    const res = await fetch(apiUrl("/inventory?store=2"));
     const data = await res.json();
     setInventory(data);
     // Initialize virtual open volumes
@@ -63,14 +66,14 @@ const Sales = () => {
 
   // Fetch food items
   const fetchFoods = async () => {
-    const res = await fetch("/api/food");
+    const res = await fetch(apiUrl("/food"));
     const data = await res.json();
     setFoods(data);
   };
 
   // Fetch cocktails
   const fetchCocktails = async () => {
-    const res = await fetch("/api/cocktail");
+    const res = await fetch(apiUrl("/cocktail"));
     const data = await res.json();
     setCocktails(data);
   };
@@ -82,7 +85,7 @@ const Sales = () => {
     // Fetch restaurant details
     const fetchRestaurant = async () => {
       try {
-        const res = await fetch('/api/restaurant');
+        const res = await fetch(apiUrl('/restaurant'));
         if (!res.ok) return;
         const data = await res.json();
         setRestaurant(data);
@@ -242,7 +245,7 @@ const Sales = () => {
       for (const b of billItems) {
         if (b.type === "bottle") {
           // Deduct bottles
-          const invRes = await fetch(`/api/inventory/${b.inventoryId}`, {
+          const invRes = await fetch(`${apiUrl(`/inventory/${b.inventoryId}`)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ bottles: inventory.find(i => i._id === b.inventoryId).bottles - b.qty })
@@ -250,7 +253,7 @@ const Sales = () => {
           const invData = await invRes.json();
           if (!invRes.ok) throw new Error(invData.message || `Error selling bottle for ${b.brand}`);
           // Log sale
-          await fetch(`/api/sale`, {
+          await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -279,7 +282,7 @@ const Sales = () => {
             }
           }
           // Update inventory
-          const invRes = await fetch(`/api/inventory/${b.inventoryId}`, {
+          const invRes = await fetch(`${apiUrl(`/inventory/${b.inventoryId}`)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ bottles: newBottles, openVolume: newOpenVolume })
@@ -287,7 +290,7 @@ const Sales = () => {
           const invData = await invRes.json();
           if (!invRes.ok) throw new Error(invData.message || `Error selling shot for ${b.brand}`);
           // Log sale
-          await fetch(`/api/sale`, {
+          await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -302,7 +305,7 @@ const Sales = () => {
           });
         } else if (b.type === "food") {
           // Log sale for food
-          await fetch(`/api/sale`, {
+          await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -317,7 +320,7 @@ const Sales = () => {
           });
         } else if (b.type === "cocktail") {
           // Log sale for cocktail
-          await fetch(`/api/sale`, {
+          await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -333,7 +336,7 @@ const Sales = () => {
         }
       }
       // Save the bill as a document
-      await fetch('/api/bill', {
+      await fetch(apiUrl('/bill'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -15,10 +15,12 @@ const CocktailManagement = () => {
   const [ingredientSearch, setIngredientSearch] = useState([]); // [{ value: '', open: false }]
   const ingredientRefs = useRef([]);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   // Fetch Store 2 liquors for dropdown
   const fetchLiquors = async () => {
     try {
-      const res = await fetch("/api/inventory?store=2");
+      const res = await fetch(apiUrl("/inventory?store=2"));
       const data = await res.json();
       setLiquors(
         data
@@ -35,7 +37,7 @@ const CocktailManagement = () => {
   // Fetch cocktails
   const fetchCocktails = async () => {
     try {
-      const res = await fetch("/api/cocktail");
+      const res = await fetch(apiUrl("/cocktail"));
       const data = await res.json();
       setCocktails(data);
     } catch {}
@@ -175,7 +177,7 @@ const CocktailManagement = () => {
       };
       let res, data;
       if (editId) {
-        res = await fetch(`/api/cocktail?id=${editId}`, {
+        res = await fetch(apiUrl(`/cocktail?id=${editId}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -184,7 +186,7 @@ const CocktailManagement = () => {
         if (!res.ok) throw new Error(data.message || "Error updating cocktail");
         setSuccess("Cocktail updated successfully!");
       } else {
-        res = await fetch("/api/cocktail", {
+        res = await fetch(apiUrl("/cocktail"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -208,7 +210,7 @@ const CocktailManagement = () => {
     setSuccess("");
     setLoading(true);
     try {
-      const res = await fetch(`/api/cocktail?id=${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/cocktail?id=${id}`), { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Error deleting cocktail");
       setSuccess("Cocktail deleted successfully!");

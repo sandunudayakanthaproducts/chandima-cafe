@@ -17,13 +17,15 @@ const LiquorAdd = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccess("");
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/liquor", {
+      const res = await fetch(apiUrl("/liquor"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

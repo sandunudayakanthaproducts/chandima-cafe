@@ -10,12 +10,14 @@ const Dashboard = () => {
   const [categoryTrend, setCategoryTrend] = useState([]);
   const [todayPie, setTodayPie] = useState([]);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   useEffect(() => {
     const fetchTodaySummary = async () => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/bill");
+        const res = await fetch(apiUrl("/bill"));
         const bills = await res.json();
         // Filter bills for today
         const now = new Date();

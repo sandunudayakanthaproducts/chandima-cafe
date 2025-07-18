@@ -16,9 +16,11 @@ const UserManagement = () => {
   const { user, login } = useUser();
   const [users, setUsers] = useState([]);
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   const fetchUsers = async () => {
     try {
-      const res = await fetch("/api/auth/users");
+      const res = await fetch(apiUrl("/auth/users"));
       const data = await res.json();
       setUsers(data);
     } catch (err) {
@@ -36,7 +38,7 @@ const UserManagement = () => {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(apiUrl("/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role: "worker" }),
@@ -62,7 +64,7 @@ const UserManagement = () => {
     setSuccess("");
     setLoading(true);
     try {
-      const res = await fetch(`/api/auth/users/${username}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/auth/users/${username}`), { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.message || "Error deleting user");
@@ -83,7 +85,7 @@ const UserManagement = () => {
     setAdminUpdateError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/admin-update", {
+      const res = await fetch(apiUrl("/auth/admin-update"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

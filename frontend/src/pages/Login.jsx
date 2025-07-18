@@ -11,11 +11,13 @@ const Login = () => {
   const { login, legacyLogin } = useUser();
   const navigate = useNavigate();
 
+  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(apiUrl("/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
