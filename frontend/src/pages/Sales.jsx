@@ -30,6 +30,20 @@ const Sales = () => {
   const [cashGiven, setCashGiven] = useState(''); // Start as empty string
   // Add a state to track the last non-empty search
   const [lastSearch, setLastSearch] = useState("");
+  // Add state for held bills
+  const [heldBills, setHeldBills] = useState(() => {
+    const stored = localStorage.getItem('heldBills');
+    return stored ? JSON.parse(stored) : [];
+  });
+  // Add state for held bills UI toggle
+  const [showHeldBills, setShowHeldBills] = useState(false);
+  // Add state for table name input
+  const [tableName, setTableName] = useState("");
+
+  // Save held bills to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('heldBills', JSON.stringify(heldBills));
+  }, [heldBills]);
 
   // Fetch Store 2 inventory
   const fetchInventory = async () => {
@@ -359,6 +373,49 @@ const Sales = () => {
     }
   };
 
+  // Hold current bill
+  const handleHoldBill = () => {
+    if (billItems.length === 0) return;
+    if (!tableName.trim()) {
+      setError('Please enter a table name before holding the bill.');
+      return;
+    }
+    if (heldBills.some(b => b.tableName && b.tableName.toLowerCase() === tableName.trim().toLowerCase())) {
+      setError('A bill for this table name is already held. Please use a unique table name.');
+      return;
+    }
+    const id = generateBillId();
+    setHeldBills(prev => [
+      ...prev,
+      {
+        id,
+        billItems,
+        cashGiven,
+        tableName: tableName.trim(),
+        time: new Date().toLocaleString(),
+      },
+    ]);
+    setBillItems([]);
+    setCashGiven('');
+    setTableName("");
+    setSearch("");
+    setSuccess('Bill held!');
+  };
+  // Resume a held bill
+  const handleResumeBill = (id) => {
+    const bill = heldBills.find(b => b.id === id);
+    if (!bill) return;
+    setBillItems(bill.billItems);
+    setCashGiven(bill.cashGiven);
+    setTableName(bill.tableName || ""); // Remember table name
+    setHeldBills(heldBills.filter(b => b.id !== id));
+    setSuccess('Held bill resumed!');
+  };
+  // Delete a held bill
+  const handleDeleteHeldBill = (id) => {
+    setHeldBills(heldBills.filter(b => b.id !== id));
+  };
+
   // Bill modal close
   const closeBill = () => setBill(null);
 
@@ -624,6 +681,49 @@ const Sales = () => {
           {/* Right: Bill Builder Section */}
           <div className="lg:w-1/3 w-full mb-8">
             <h2 className="text-xl font-bold mb-2">Current Bill</h2>
+            <div className="flex flex-col gap-2 mb-2">
+              <input
+                type="text"
+                className="border rounded-3xl px-3 py-2 w-full"
+                placeholder="Table name (required before hold)"
+                value={tableName}
+                onChange={e => setTableName(e.target.value)}
+              />
+              <button
+                className="bg-yellow-500 text-white px-4 py-2 rounded-3xl hover:bg-yellow-600"
+                onClick={handleHoldBill}
+                disabled={billItems.length === 0}
+              >
+                Hold Bill
+              </button>
+            </div>
+            {/* Add state for held bills UI toggle */}
+            <div className="mb-4">
+              <button
+                className={`bg-gray-700 text-white px-4 py-2 rounded-3xl text-sm hover:bg-gray-800 mb-2 ${showHeldBills ? 'bg-gray-800' : ''}`}
+                onClick={() => setShowHeldBills(v => !v)}
+              >
+                {showHeldBills ? 'Hide Held Bills' : `Show Held Bills (${heldBills.length})`}
+              </button>
+              {showHeldBills && heldBills.length > 0 && (
+                <div className="bg-white text-black rounded shadow-lg p-2 max-h-64 overflow-y-auto mb-2">
+                  <div className="font-bold mb-2 text-gray-700">Held Bills</div>
+                  {heldBills.map(bill => (
+                    <div key={bill.id} className="flex justify-between items-center border-b border-gray-200 py-1">
+                      <div>
+                        <div className="font-mono text-xs">{bill.time}</div>
+                        <div className="text-xs text-gray-500">Table: {bill.tableName || '-'}</div>
+                        <div className="text-xs text-gray-500">Items: {bill.billItems.length}</div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button className="bg-green-500 text-white px-2 py-1 rounded-3xl text-xs hover:bg-green-600" onClick={() => handleResumeBill(bill.id)}>Resume</button>
+                        <button className="bg-red-500 text-white px-2 py-1 rounded-3xl text-xs hover:bg-red-600" onClick={() => handleDeleteHeldBill(bill.id)}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             {billItems.length === 0 ? (
               <div className="text-gray-500">No items in bill. Add bottles or shots above.</div>
             ) : (
