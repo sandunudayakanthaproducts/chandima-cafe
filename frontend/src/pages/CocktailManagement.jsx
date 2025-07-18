@@ -225,13 +225,13 @@ const CocktailManagement = () => {
       <Navbar />
       <div className="p-8 max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Cocktail Management</h1>
-        <button className="mb-4 bg-blue-600 text-white px-4 py-2 rounded" onClick={openAddModal}>Add Cocktail</button>
+        <button className="mb-4 bg-blue-600 text-white px-4 py-2 rounded-3xl" onClick={openAddModal}>Add Cocktail</button>
         {error && <div className="text-red-500 mb-2">{error}</div>}
         {success && <div className="text-green-600 mb-2">{success}</div>}
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border rounded shadow text-sm mb-6">
+          <table className="min-w-full bg-gray-900 border rounded shadow text-sm mb-6">
             <thead>
-              <tr className="bg-blue-50">
+              <tr className="bg-gray-900">
                 <th className="py-2 px-4 border">Name</th>
                 <th className="py-2 px-4 border">Barcode</th>
                 <th className="py-2 px-4 border">Price</th>
@@ -251,8 +251,8 @@ const CocktailManagement = () => {
                     ))}
                   </td>
                   <td className="py-2 px-4 border">
-                    <button className="bg-green-600 text-white px-2 py-1 rounded mr-2" onClick={() => openEditModal(cocktail)}>Edit</button>
-                    <button className="bg-red-500 text-white px-2 py-1 rounded" onClick={() => handleDelete(cocktail._id)}>Delete</button>
+                    <button className="bg-green-600 text-white px-2 py-1 rounded-3xl mr-2" onClick={() => openEditModal(cocktail)}>Edit</button>
+                    <button className="bg-red-500 text-white px-2 py-1 rounded-3xl" onClick={() => handleDelete(cocktail._id)}>Delete</button>
                   </td>
                 </tr>
               ))}
@@ -263,21 +263,21 @@ const CocktailManagement = () => {
         {/* Modal for add/edit */}
         {showModal && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-            <div className="bg-white p-6 rounded shadow w-full max-w-lg relative">
+            <div className="bg-gray-900 p-6 rounded shadow w-full max-w-lg relative">
               <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-800" onClick={closeModal}>&times;</button>
               <h2 className="text-xl font-bold mb-4">{editId ? "Edit Cocktail" : "Add Cocktail"}</h2>
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="block mb-1 font-medium">Name</label>
-                  <input type="text" name="name" value={form.name} onChange={handleChange} className="w-full px-3 py-2 border rounded" required />
+                  <input type="text" name="name" value={form.name} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" required />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Barcode</label>
-                  <input type="text" name="barcode" value={form.barcode} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+                  <input type="text" name="barcode" value={form.barcode} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Price</label>
-                  <input type="number" name="price" value={form.price} onChange={handleChange} className="w-full px-3 py-2 border rounded" required min="0" />
+                  <input type="number" name="price" value={form.price} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" required min="0" />
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Ingredients</label>
@@ -286,7 +286,7 @@ const CocktailManagement = () => {
                       <div className="relative w-40">
                         <input
                           type="text"
-                          className="px-2 py-1 border rounded w-full"
+                          className="px-2 py-1 border rounded-3xl w-full"
                           placeholder="Search liquor"
                           value={ingredientSearch[idx]?.value || (ing.liquorId ? getLiquorLabel(liquors.find(l => l.id === ing.liquorId) || { brand: '', size: '' }) : '')}
                           onChange={e => handleIngredientSearchChange(idx, e.target.value)}
@@ -294,7 +294,7 @@ const CocktailManagement = () => {
                           required
                         />
                         {ingredientSearch[idx]?.open && (ingredientSearch[idx].value?.length > 0 || liquors.length > 0) && (
-                          <div className="absolute z-10 bg-white border rounded w-full max-h-40 overflow-y-auto shadow">
+                          <div className="absolute z-10 bg-gray-900 border rounded-2xl w-full max-h-40 overflow-y-auto shadow">
                             {liquors.filter(l => getLiquorLabel(l).toLowerCase().includes((ingredientSearch[idx]?.value || '').toLowerCase())).map(l => (
                               <div
                                 key={l.id}
@@ -312,7 +312,7 @@ const CocktailManagement = () => {
                       </div>
                       <input
                         type="number"
-                        className="px-2 py-1 border rounded w-24"
+                        className="px-2 py-1 border rounded-3xl "
                         placeholder="Volume (ml)"
                         value={ing.volume}
                         min="1"
@@ -322,11 +322,11 @@ const CocktailManagement = () => {
                       <button type="button" className="text-red-500 text-lg font-bold" onClick={() => removeIngredient(idx)} disabled={form.ingredients.length === 1}>×</button>
                     </div>
                   ))}
-                  <button type="button" className="bg-blue-500 text-white px-2 py-1 rounded mt-1" onClick={addIngredient}>Add Ingredient</button>
+                  <button type="button" className="bg-blue-500 text-white px-2 py-1 rounded-3xl mt-1" onClick={addIngredient}>Add Ingredient</button>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button type="button" className="bg-gray-400 text-white px-4 py-2 rounded" onClick={closeModal}>Cancel</button>
-                  <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded" disabled={loading}>{loading ? (editId ? "Updating..." : "Creating...") : (editId ? "Update" : "Create")}</button>
+                  <button type="button" className="bg-gray-400 text-white px-4 py-2 rounded-3xl" onClick={closeModal}>Cancel</button>
+                  <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-3xl" disabled={loading}>{loading ? (editId ? "Updating..." : "Creating...") : (editId ? "Update" : "Create")}</button>
                 </div>
               </form>
             </div>

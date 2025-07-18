@@ -186,7 +186,7 @@ const BillHistoryWorker = () => {
             <label className="block text-xs font-semibold mb-1">Start Date</label>
             <input
               type="date"
-              className="border rounded px-2 py-1"
+              className="border rounded-3xl bg-white text-black px-3 py-2"
               value={filterStart}
               onChange={e => setFilterStart(e.target.value)}
             />
@@ -195,27 +195,27 @@ const BillHistoryWorker = () => {
             <label className="block text-xs font-semibold mb-1">End Date</label>
             <input
               type="date"
-              className="border rounded px-2 py-1"
+              className="border rounded-3xl bg-white text-black px-3 py-2"
               value={filterEnd}
               onChange={e => setFilterEnd(e.target.value)}
             />
           </div>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded-3xl hover:bg-blue-700"
             onClick={handleFilter}
             disabled={loading}
           >
             Filter
           </button>
           <button
-            className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+            className="bg-gray-400 text-white px-4 py-2 rounded-3xl hover:bg-gray-500"
             onClick={handleClear}
             disabled={loading || (!filterStart && !filterEnd)}
           >
             Clear
           </button>
           <button
-            className={`px-4 py-2 rounded ${showingToday ? 'bg-green-700 text-white' : 'bg-green-500 text-white hover:bg-green-600'}`}
+            className={`px-4 py-2 rounded-3xl ${showingToday ? 'bg-green-700 text-white' : 'bg-green-500 text-white hover:bg-green-600'}`}
             onClick={handleShowToday}
             disabled={loading}
           >
@@ -224,18 +224,18 @@ const BillHistoryWorker = () => {
         </div>
         {showingToday && todaySummary && (
           <div className="mb-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded flex flex-wrap gap-8 items-center">
-              <div className="font-semibold text-green-900">Today's Sales Summary:</div>
-              <div className="text-green-800">Total Sales: <span className="font-bold">{todaySummary.totalSales.toLocaleString()}</span></div>
-              <div className="text-green-800">Total Bottles Sold: <span className="font-bold">{todaySummary.totalBottles}</span></div>
-              <div className="text-green-800">Total Shots Sold: <span className="font-bold">{todaySummary.totalShots}</span></div>
+            <div className="p-4 bg-gray-900 border border-amber-400 rounded-3xl flex flex-wrap gap-8 items-center">
+              <div className="font-semibold text-white">Today's Sales Summary:</div>
+              <div className="text-white">Total Sales: <span className="font-bold">{todaySummary.totalSales.toLocaleString()}</span></div>
+              <div className="text-white">Total Bottles Sold: <span className="font-bold">{todaySummary.totalBottles}</span></div>
+              <div className="text-white">Total Shots Sold: <span className="font-bold">{todaySummary.totalShots}</span></div>
             </div>
             {brandSummary.length > 0 && (
               <div className="mt-4">
-                <div className="font-semibold mb-2 text-green-900">Breakdown by Brand:</div>
-                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                <div className="font-semibold mb-2 text-white">Breakdown by Brand:</div>
+                <table className="min-w-full bg-gray-900 border rounded shadow text-sm mb-4">
                   <thead>
-                    <tr className="bg-green-100">
+                    <tr className="bg-gray-900">
                       <th className="py-2 px-4 border">Brand</th>
                       <th className="py-2 px-4 border">Bottles Sold</th>
                       <th className="py-2 px-4 border">Shots Sold</th>
@@ -264,10 +264,10 @@ const BillHistoryWorker = () => {
             {/* Add food and cocktail/mocktail summaries, and inventory tables here, matching BillHistory */}
             {foodSummary.length > 0 && (
               <div className="mt-4">
-                <div className="font-semibold mb-2 text-yellow-900">Food Sales Summary:</div>
-                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                <div className="font-semibold mb-2 text-white">Food Sales Summary:</div>
+                <table className="min-w-full bg-gray-900 border rounded shadow text-sm mb-4">
                   <thead>
-                    <tr className="bg-yellow-100">
+                    <tr className="bg-gray-900">
                       <th className="py-2 px-4 border">Food Item</th>
                       <th className="py-2 px-4 border">Total Portions Sold</th>
                       <th className="py-2 px-4 border">Total Sales</th>
@@ -286,13 +286,13 @@ const BillHistoryWorker = () => {
               </div>
             )}
             {cocktailSummaryLoading ? (
-              <div className="text-pink-700 font-semibold my-2">Loading cocktail summary...</div>
+              <div className="text-white font-semibold my-2">Loading cocktail summary...</div>
             ) : cocktailSummary.length > 0 && (
               <div className="mt-4">
-                <div className="font-semibold mb-2 text-pink-900">Cocktail/Mocktail Sales Summary:</div>
-                <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+                <div className="font-semibold mb-2 text-white">Cocktail/Mocktail Sales Summary:</div>
+                <table className="min-w-full bg-gray-900 border rounded shadow text-sm mb-4">
                   <thead>
-                    <tr className="bg-pink-100">
+                    <tr className="bg-gray-900">
                       <th className="py-2 px-4 border">Cocktail Name</th>
                       <th className="py-2 px-4 border">Quantity Sold</th>
                       <th className="py-2 px-4 border">Ingredients (per × qty = total)</th>
@@ -325,10 +325,10 @@ const BillHistoryWorker = () => {
               </div>
             )}
             <div className="mt-4">
-              <div className="font-semibold mb-2 text-blue-900">Current Inventory (Bottles & Open Volume Left)</div>
-              <table className="min-w-full bg-white border rounded shadow text-sm">
+              <div className="font-semibold mb-2 text-white">Current Inventory (Bottles & Open Volume Left)</div>
+              <table className="min-w-full bg-gray-900 border rounded shadow text-sm">
                 <thead>
-                  <tr className="bg-blue-100">
+                  <tr className="bg-gray-900">
                     <th className="py-2 px-4 border">Brand</th>
                     <th className="py-2 px-4 border">Store</th>
                     <th className="py-2 px-4 border">Bottles Left</th>
@@ -354,9 +354,9 @@ const BillHistoryWorker = () => {
           </div>
         )}
         <div className="overflow-x-auto mb-8">
-          <table className="min-w-full bg-white border rounded shadow text-sm">
+          <table className="min-w-full bg-gray-900 border rounded shadow text-sm">
             <thead>
-              <tr className="bg-blue-100">
+              <tr className="bg-gray-900 text-white">
                 <th className="py-2 px-4 border">Bill ID</th>
                 <th className="py-2 px-4 border">Total</th>
                 <th className="py-2 px-4 border">Date</th>
@@ -366,14 +366,14 @@ const BillHistoryWorker = () => {
             <tbody>
               {filteredBills.map(bill => (
                 <React.Fragment key={bill.billId}>
-                  <tr className="text-center bg-gray-50">
+                  <tr className="text-center bg-gray-900">
                     <td className="py-2 px-4 border font-mono text-xs align-top">{bill.billId}</td>
                     <td className="py-2 px-4 border align-top">{bill.total?.toLocaleString()}</td>
                     <td className="py-2 px-4 border align-top">{bill.time ? new Date(bill.time).toLocaleString() : "-"}</td>
                     <td className="py-2 px-4 border align-top">
-                      <table className="w-full text-xs bg-white border rounded">
+                      <table className="w-full text-xs bg-gray-900 border rounded">
                         <thead>
-                          <tr className="bg-blue-50">
+                          <tr className="bg-gray-900">
                             <th className="py-1 px-2 border">Brand</th>
                             <th className="py-1 px-2 border">Type</th>
                             <th className="py-1 px-2 border">Qty</th>

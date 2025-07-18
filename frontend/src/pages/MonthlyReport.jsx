@@ -246,14 +246,14 @@ const MonthlyReport = () => {
             <label className="block text-xs font-semibold mb-1">Select Month</label>
             <input
               type="month"
-              className="border rounded px-2 py-1"
+              className="border rounded-3xl bg-white text-black px-3 py-2"
               value={month}
               onChange={e => setMonth(e.target.value)}
               disabled={loading}
             />
           </div>
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded-3xl hover:bg-blue-700"
             onClick={fetchReport}
             disabled={loading || !month}
           >
@@ -263,18 +263,18 @@ const MonthlyReport = () => {
         {error && <div className="text-red-500 mb-4">{error}</div>}
         {summary && (
           <div className="mb-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded flex flex-wrap gap-8 items-center">
-              <div className="font-semibold text-green-900">Summary for {month}:</div>
-              <div className="text-green-800">Total Sales: <span className="font-bold">{summary.totalSales.toLocaleString()}</span></div>
-              <div className="text-green-800">Total Bottles Sold: <span className="font-bold">{summary.totalBottles}</span></div>
-              <div className="text-green-800">Total Shots Sold: <span className="font-bold">{summary.totalShots}</span></div>
+            <div className="p-4 bg-gray-900 border border-amber-400 rounded-3xl flex flex-wrap gap-8 items-center">
+              <div className="font-semibold text-white">Summary for {month}:</div>
+              <div className="text-white">Total Sales: <span className="font-bold">{summary.totalSales.toLocaleString()}</span></div>
+              <div className="text-white">Total Bottles Sold: <span className="font-bold">{summary.totalBottles}</span></div>
+              <div className="text-white">Total Shots Sold: <span className="font-bold">{summary.totalShots}</span></div>
             </div>
             {brandSummary.filter(row => (row.bottles > 0 || row.shots > 0)).length > 0 && (
               <div className="mt-4">
-                <div className="font-semibold mb-2 text-green-900">Breakdown by Brand:</div>
-                <table className="min-w-full bg-white border rounded shadow text-sm">
+                <div className="font-semibold mb-2 text-white">Breakdown by Brand:</div>
+                <table className="min-w-full bg-gray-900 border rounded shadow text-sm">
                   <thead>
-                    <tr className="bg-green-100">
+                    <tr className="bg-gray-900">
                       <th className="py-2 px-4 border">Brand</th>
                       <th className="py-2 px-4 border">Bottles Sold</th>
                       <th className="py-2 px-4 border">Shots Sold</th>
@@ -305,9 +305,9 @@ const MonthlyReport = () => {
         {dailyReports.length > 0 && (
           <div className="mt-8">
             <h2 className="text-xl font-bold mb-2">Bar Closing Report (Daily)</h2>
-            <table className="min-w-full bg-white border rounded shadow text-sm mb-4">
+            <table className="min-w-full bg-gray-900 border rounded shadow text-sm mb-4">
               <thead>
-                <tr className="bg-blue-100">
+                <tr className="bg-gray-900 text-white">
                   <th className="py-2 px-4 border">Date</th>
                   <th className="py-2 px-4 border">Total Sales</th>
                   <th className="py-2 px-4 border">Bottles Sold</th>
@@ -318,14 +318,14 @@ const MonthlyReport = () => {
               <tbody>
                 {dailyReports.map((day, idx) => (
                   <React.Fragment key={day.day}>
-                    <tr className="text-center bg-gray-50">
+                    <tr className="text-center bg-gray-900">
                       <td className="py-2 px-4 border font-mono">{day.day}</td>
                       <td className="py-2 px-4 border">{day.summary.dayTotal.toLocaleString()}</td>
                       <td className="py-2 px-4 border">{day.summary.bottles}</td>
                       <td className="py-2 px-4 border">{day.summary.shots}</td>
                       <td className="py-2 px-4 border">
                         <button
-                          className="bg-blue-500 text-white px-2 py-1 rounded"
+                          className="bg-blue-500 text-white px-2 py-1 rounded-3xl"
                           onClick={() => setExpandedDays(prev => ({ ...prev, [day.day]: !prev[day.day] }))}
                         >
                           {expandedDays[day.day] ? "Hide" : "Show"}
@@ -334,14 +334,14 @@ const MonthlyReport = () => {
                     </tr>
                     {expandedDays[day.day] && (
                       <tr>
-                        <td colSpan={5} className="bg-blue-50 p-4">
+                        <td colSpan={5} className="bg-gray-900 p-4">
                           {/* Brand breakdown */}
                           {day.brandSummary.filter(row => (row.bottles > 0 || row.shots > 0)).length > 0 && (
                             <div className="mb-4">
-                              <div className="font-semibold mb-2 text-green-900">Breakdown by Brand:</div>
-                              <table className="min-w-full bg-white border rounded shadow text-xs mb-2">
+                              <div className="font-semibold mb-2 text-white">Breakdown by Brand:</div>
+                              <table className="min-w-full bg-gray-900 border rounded shadow text-xs mb-2">
                                 <thead>
-                                  <tr className="bg-green-100">
+                                  <tr className="bg-gray-900">
                                     <th className="py-1 px-2 border">Brand</th>
                                     <th className="py-1 px-2 border">Bottles Sold</th>
                                     <th className="py-1 px-2 border">Shots Sold</th>
@@ -370,10 +370,10 @@ const MonthlyReport = () => {
                           {/* Opening & Closing Inventory Table */}
                           {day.brandSummary.length > 0 && (
                             <div className="mb-4">
-                              <div className="font-semibold mb-2 text-blue-900">Opening & Closing Inventory (Store 2)</div>
-                              <table className="min-w-full bg-white border rounded shadow text-xs mb-2">
+                              <div className="font-semibold mb-2 text-white">Opening & Closing Inventory (Store 2)</div>
+                              <table className="min-w-full bg-gray-900 border rounded shadow text-xs mb-2">
                                 <thead>
-                                  <tr className="bg-blue-100">
+                                  <tr className="bg-gray-900">
                                     <th className="py-1 px-2 border">Brand</th>
                                     <th className="py-1 px-2 border">Opening Bottles</th>
                                     <th className="py-1 px-2 border">Opening Open Volume (ml)</th>
@@ -406,10 +406,10 @@ const MonthlyReport = () => {
                           {/* Food summary */}
                           {day.foodSummary.length > 0 && (
                             <div className="mb-4">
-                              <div className="font-semibold mb-2 text-yellow-900">Food Sales Summary:</div>
-                              <table className="min-w-full bg-white border rounded shadow text-xs mb-2">
+                              <div className="font-semibold mb-2 text-white">Food Sales Summary:</div>
+                              <table className="min-w-full bg-gray-900 border rounded shadow text-xs mb-2">
                                 <thead>
-                                  <tr className="bg-yellow-100">
+                                  <tr className="bg-gray-900">
                                     <th className="py-1 px-2 border">Food Item</th>
                                     <th className="py-1 px-2 border">Total Portions Sold</th>
                                     <th className="py-1 px-2 border">Total Sales</th>
@@ -430,10 +430,10 @@ const MonthlyReport = () => {
                           {/* Cocktail/Mocktail summary */}
                           {day.cocktailSummary.length > 0 && (
                             <div className="mb-4">
-                              <div className="font-semibold mb-2 text-pink-900">Cocktail/Mocktail Sales Summary:</div>
-                              <table className="min-w-full bg-white border rounded shadow text-xs mb-2">
+                              <div className="font-semibold mb-2 text-white">Cocktail/Mocktail Sales Summary:</div>
+                              <table className="min-w-full bg-gray-900 border rounded shadow text-xs mb-2">
                                 <thead>
-                                  <tr className="bg-pink-100">
+                                  <tr className="bg-gray-900">
                                     <th className="py-1 px-2 border">Cocktail Name</th>
                                     <th className="py-1 px-2 border">Quantity Sold</th>
                                     <th className="py-1 px-2 border">Ingredients (per × qty = total)</th>
@@ -467,10 +467,10 @@ const MonthlyReport = () => {
                           )}
                           {/* Optionally: List of bills for the day */}
                           <div className="mb-2">
-                            <div className="font-semibold mb-2 text-gray-700">Bills for {day.day}:</div>
-                            <table className="min-w-full bg-white border rounded shadow text-xs">
+                            <div className="font-semibold mb-2 text-white">Bills for {day.day}:</div>
+                            <table className="min-w-full bg-gray-900 border rounded shadow text-xs">
                               <thead>
-                                <tr className="bg-gray-100">
+                                <tr className="bg-gray-900">
                                   <th className="py-1 px-2 border">Bill ID</th>
                                   <th className="py-1 px-2 border">Total</th>
                                   <th className="py-1 px-2 border">Time</th>
@@ -484,9 +484,9 @@ const MonthlyReport = () => {
                                     <td className="py-1 px-2 border align-top">{bill.total?.toLocaleString()}</td>
                                     <td className="py-1 px-2 border align-top">{bill.time ? new Date(bill.time).toLocaleTimeString() : "-"}</td>
                                     <td className="py-1 px-2 border align-top">
-                                      <table className="w-full text-xs bg-white border rounded">
+                                      <table className="w-full text-xs bg-gray-900 border rounded">
                                         <thead>
-                                          <tr className="bg-blue-50">
+                                          <tr className="bg-gray-900">
                                             <th className="py-1 px-2 border">Brand</th>
                                             <th className="py-1 px-2 border">Type</th>
                                             <th className="py-1 px-2 border">Qty</th>

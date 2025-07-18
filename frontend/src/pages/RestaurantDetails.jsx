@@ -81,32 +81,32 @@ const RestaurantDetails = () => {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block font-medium mb-1">Name</label>
-            <input name="name" value={details.name} onChange={handleChange} className="w-full px-3 py-2 border rounded" required />
+            <input name="name" value={details.name} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" required />
           </div>
           <div>
             <label className="block font-medium mb-1">Phone</label>
-            <input name="phone" value={details.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded" required />
+            <input name="phone" value={details.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" required />
           </div>
           <div>
             <label className="block font-medium mb-1">Email</label>
-            <input name="email" value={details.email} onChange={handleChange} className="w-full px-3 py-2 border rounded" required />
+            <input name="email" value={details.email} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" required />
           </div>
           <div>
             <label className="block font-medium mb-1">Address</label>
-            <textarea name="address" value={details.address} onChange={handleChange} className="w-full px-3 py-2 border rounded" required />
+            <textarea name="address" value={details.address} onChange={handleChange} className="w-full px-3 py-2 border rounded-3xl" required />
           </div>
           <div className="flex justify-end gap-2">
             {!hasDetails && (
-              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" disabled={loading}>
+              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-3xl hover:bg-blue-700" disabled={loading}>
                 {loading ? "Adding..." : "Add"}
               </button>
             )}
             {hasDetails && (
               <>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" disabled={loading}>
+                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-3xl hover:bg-blue-700" disabled={loading}>
                   {loading ? "Updating..." : "Update"}
                 </button>
-                <button type="button" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" onClick={handleDelete} disabled={loading}>
+                <button type="button" className="bg-red-600 text-white px-4 py-2 rounded-3xl hover:bg-red-700" onClick={handleDelete} disabled={loading}>
                   Delete
                 </button>
               </>
