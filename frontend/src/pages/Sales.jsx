@@ -952,9 +952,10 @@ const Sales = () => {
         {bill && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
             <div className="bg-white p-6 rounded shadow w-full max-w-sm">
-              <div className="flex justify-end gap-2 mb-2 print:hidden">
+              <div className="flex justify-center gap-4 mb-4 print:hidden sticky top-0 bg-white z-10 py-2" style={{borderBottom:'1px solid #eee'}}>
                 <button onClick={handlePrint} className="bg-blue-600 text-white px-6 py-2 rounded-3xl hover:bg-blue-700">Print</button>
                 <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded-3xl hover:bg-green-700">Download PDF</button>
+                <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded-3xl hover:bg-gray-500">Close</button>
               </div>
               <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif',width:'70mm',maxWidth:'70mm',minWidth:'70mm',padding:'0.5em',fontSize:'15px'}}>
                 <h2 style={{fontWeight:'bold',fontSize:'1.5rem',marginBottom:'0.7rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
@@ -1011,13 +1012,10 @@ const Sales = () => {
                   </tbody>
                 </table>
                 <div style={{borderTop:'2px solid #555',margin:'0.7rem 0'}}></div>
-                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1.2rem',fontSize:'1.2rem'}}>Total: {bill.total.toLocaleString()}</div>
+                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1.2rem',fontSize:'1.2rem'}}>Total:LKR {bill.total.toLocaleString()}</div>
                 {/* Cash and Change for print */}
-                <div style={{textAlign:'right',fontSize:'1.1rem',marginBottom:'0.3rem'}}>Cash: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
-                <div style={{textAlign:'right',fontSize:'1.1rem',marginBottom:'0.7rem'}}>Change: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded-3xl hover:bg-gray-500">Close</button>
+                <div style={{textAlign:'right',fontSize:'1.1rem',marginBottom:'0.3rem'}}>Cash:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
+                <div style={{textAlign:'right',fontSize:'1.1rem',marginBottom:'0.7rem'}}>Change:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
               </div>
             </div>
           </div>
