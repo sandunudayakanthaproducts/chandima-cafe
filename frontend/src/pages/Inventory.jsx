@@ -8,6 +8,9 @@ function sanitizeNumberInput(val) {
   return val.replace(/[^0-9]/g, "");
 }
 
+// Move this helper to the top-level scope so it's available everywhere in this file
+const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
+
 const Inventory = () => {
   const [inventory, setInventory] = useState([]);
   const [store2Map, setStore2Map] = useState({});
@@ -26,8 +29,6 @@ const Inventory = () => {
   const [showTransferHistory, setShowTransferHistory] = useState(false); // NEW
 
   const barcodeInputRef = useRef(null);
-
-  const apiUrl = (path) => `${import.meta.env.VITE_API_URL}${path}`;
 
   // Fetch inventory for Store 1 and Store 2
   const fetchInventories = async () => {
