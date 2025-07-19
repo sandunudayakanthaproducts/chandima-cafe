@@ -100,6 +100,12 @@ const Sales = () => {
 
   // Add bottle to bill
   const addBottleToBill = (item) => {
+    // Find available bottles in virtualOpenVolumes or inventory
+    const available = virtualOpenVolumes[item._id]?.bottles ?? item.bottles;
+    if (available < 1) {
+      setError(`Cannot add more bottles. No stock left.`);
+      return;
+    }
     setBillItems(prev => {
       const idx = prev.findIndex(b => b.inventoryId === item._id && b.type === "bottle");
       if (idx !== -1) {
@@ -124,6 +130,12 @@ const Sales = () => {
 
   // Add shot to bill
   const addShotToBill = (item, shotSize) => {
+    const openVolume = virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0;
+    const bottles = virtualOpenVolumes[item._id]?.bottles ?? item.bottles ?? 0;
+    if (openVolume < shotSize && bottles < 1) {
+      setError('No stock or open bottle available for shots.');
+      return;
+    }
     const shotPrice = item.liquor.shotPrices?.[shotSize] ? Number(item.liquor.shotPrices[shotSize]) : 0;
     setBillItems(prev => {
       const idx = prev.findIndex(b => b.inventoryId === item._id && b.type === "shot" && b.shotSize === shotSize);
@@ -172,8 +184,52 @@ const Sales = () => {
     setSearch("");
   };
 
-  // Add cocktail to bill
+  const getMissingIngredients = (cocktail, qty = 1) => {
+    if (!Array.isArray(cocktail.ingredients)) return [];
+    return cocktail.ingredients.map(ing => {
+      const inv = inventory.find(row => row.liquor && (row.liquor._id === ing.liquorId || row.liquor.brand === ing.brand));
+      if (!inv) return { ...ing, missing: true, reason: 'Not in inventory', available: 0 };
+      const openVolume = virtualOpenVolumes[inv._id]?.openVolume ?? inv.openVolume ?? 0;
+      const bottles = virtualOpenVolumes[inv._id]?.bottles ?? inv.bottles ?? 0;
+      const needed = ing.volume * qty;
+      let availableOpen = openVolume;
+      let availableBottles = bottles;
+      let remaining = needed;
+      let available = availableOpen;
+      if (availableOpen >= remaining) {
+        // Enough open volume
+        return null;
+      } else {
+        remaining -= availableOpen;
+        const bottleSize = inv.liquor.size || 750;
+        const bottlesNeeded = Math.ceil(remaining / bottleSize);
+        if (availableBottles >= bottlesNeeded) {
+          // Enough bottles
+          return null;
+        } else {
+          // Not enough
+          available += availableBottles * bottleSize;
+          return {
+            ...ing,
+            missing: true,
+            reason: `Need ${needed}ml, only ${available}ml available`,
+            available
+          };
+        }
+      }
+    }).filter(Boolean);
+  };
+
+  const canMakeCocktail = (cocktail, qty = 1) => getMissingIngredients(cocktail, qty).length === 0;
+
   const addCocktailToBill = (cocktail) => {
+    const currentQty = billItems.find(b => b.cocktailId === cocktail._id && b.type === "cocktail")?.qty || 0;
+    const intendedQty = currentQty + 1;
+    const missing = getMissingIngredients(cocktail, intendedQty);
+    if (missing.length > 0) {
+      setError('Not enough stock for: ' + missing.map(m => `${m.brand || m.name} (${m.reason})`).join(', '));
+      return;
+    }
     setBillItems(prev => {
       const idx = prev.findIndex(b => b.cocktailId === cocktail._id && b.type === "cocktail");
       if (idx !== -1) {
@@ -213,7 +269,8 @@ const Sales = () => {
     setBillItems(prev => {
       const item = prev.find(b => b.itemId === itemId);
       if (!item) return prev;
-      const newQty = qty < 1 ? 1 : qty;
+      const maxQty = getMaxQtyForBillItem(item);
+      const newQty = Math.max(1, Math.min(qty, maxQty));
       let unitPrice = 0;
       if (item.type === "bottle") {
         const inv = inventory.find(i => i._id === item.inventoryId);
@@ -489,6 +546,72 @@ const Sales = () => {
     setVirtualOpenVolumes(vov);
   }, [billItems, inventory]);
 
+  // Helper to calculate max quantity for a bill item
+  const getMaxQtyForBillItem = (b) => {
+    if (b.type === 'bottle') {
+      const inv = inventory.find(i => i._id === b.inventoryId);
+      // Use the actual available bottles from virtualOpenVolumes or inventory
+      return Math.max(1, virtualOpenVolumes[b.inventoryId]?.bottles ?? inv?.bottles ?? 1);
+    } else if (b.type === 'shot') {
+      const inv = inventory.find(i => i._id === b.inventoryId);
+      const openVolume = virtualOpenVolumes[b.inventoryId]?.openVolume ?? inv?.openVolume ?? 0;
+      const bottles = virtualOpenVolumes[b.inventoryId]?.bottles ?? inv?.bottles ?? 0;
+      const bottleSize = inv?.liquor?.size || 750;
+      let maxShots = 0;
+      let remainingOpen = openVolume;
+      let remainingBottles = bottles;
+      const shotSize = b.shotSize;
+      // Use open volume first
+      while (remainingOpen >= shotSize) {
+        maxShots++;
+        remainingOpen -= shotSize;
+      }
+      // Use bottles
+      while (remainingBottles > 0) {
+        let bottleOpen = bottleSize;
+        while (bottleOpen >= shotSize) {
+          maxShots++;
+          bottleOpen -= shotSize;
+        }
+        remainingBottles--;
+      }
+      return maxShots || 1;
+    } else if (b.type === 'cocktail') {
+      const cocktail = cocktails.find(c => c._id === b.cocktailId);
+      if (!cocktail || !Array.isArray(cocktail.ingredients)) return 1;
+      // For each ingredient, calculate max portions
+      const maxByIngredient = cocktail.ingredients.map(ing => {
+        const inv = inventory.find(row => row.liquor && (row.liquor._id === ing.liquorId || row.liquor.brand === ing.brand));
+        if (!inv) return 0;
+        const openVolume = virtualOpenVolumes[inv._id]?.openVolume ?? inv.openVolume ?? 0;
+        const bottles = virtualOpenVolumes[inv._id]?.bottles ?? inv.bottles ?? 0;
+        const bottleSize = inv.liquor.size || 750;
+        let available = openVolume + bottles * bottleSize;
+        return Math.floor(available / ing.volume);
+      });
+      return Math.max(1, Math.min(...maxByIngredient));
+    } else if (b.type === 'food') {
+      // No stock limit for food in this logic
+      return 1000;
+    }
+    return 1;
+  };
+
+  if (typeof window !== 'undefined') {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      input[type=number].no-spinner::-webkit-inner-spin-button, 
+      input[type=number].no-spinner::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number].no-spinner {
+        -moz-appearance: textfield;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   return (
     <>
       <Navbar />
@@ -577,7 +700,7 @@ const Sales = () => {
                             <button
                               className="bg-emerald-500 text-white px-6 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
                               onClick={() => addBottleToBill(item)}
-                              disabled={loading || item.bottles < 1}
+                              disabled={loading || (virtualOpenVolumes[item._id]?.bottles ?? item.bottles) < 1}
                             >
                               Add
                             </button><br/>
@@ -589,7 +712,7 @@ const Sales = () => {
                                 key={size}
                                 className="bg-emerald-500 text-white px-3 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200 "
                                 onClick={() => addShotToBill(item, Number(size))}
-                                disabled={loading}
+                                disabled={loading || ((virtualOpenVolumes[item._id]?.openVolume ?? item.openVolume ?? 0) < Number(size) && (virtualOpenVolumes[item._id]?.bottles ?? item.bottles ?? 0) < 1)}
                               >
                                 + {size}ml
                               </button>
@@ -668,10 +791,14 @@ const Sales = () => {
                             <button
                               className="bg-emerald-500 text-white px-5 py-3 rounded-3xl hover:bg-emerald-600 border border-amber-200"
                               onClick={() => addCocktailToBill(c)}
-                              disabled={loading}
+                              disabled={loading || getMissingIngredients(c, 1).length > 0}
+                              title={getMissingIngredients(c, 1).length > 0 ? 'Missing: ' + getMissingIngredients(c, 1).map(m => `${m.brand || m.name} (${m.reason})`).join(', ') : ''}
                             >
                               + Cocktail
                             </button>
+                            {getMissingIngredients(c, 1).length > 0 && (
+                              <div className="text-xs text-red-500 mt-1">Missing: {getMissingIngredients(c, 1).map(m => `${m.brand || m.name} (${m.reason})`).join(', ')}</div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -767,10 +894,21 @@ const Sales = () => {
                           <input
                             type="number"
                             min="1"
+                            max={getMaxQtyForBillItem(b)}
                             value={b.qty}
-                            onChange={e => updateBillItemQty(b.itemId, Number(e.target.value))}
-                            className="w-16 px-2 py-3 border rounded-3xl text-center border-amber-400"
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              const max = getMaxQtyForBillItem(b);
+                              if (val > max) {
+                                setError(`Cannot set quantity above available stock (${max}).`);
+                                updateBillItemQty(b.itemId, max);
+                              } else {
+                                updateBillItemQty(b.itemId, val);
+                              }
+                            }}
+                            className="w-16 px-2 py-3 border rounded-3xl text-center border-amber-400 no-spinner"
                             disabled={loading}
+                            style={b.qty === getMaxQtyForBillItem(b) ? { pointerEvents: 'auto' } : {}}
                           />
                         </td>
                         <td className="py-1 px-2 border-t border-amber-400">{b.type === "bottle" ? "Bottle" : b.type === "shot" ? "ml" : b.type === "food" ? "Portion" : b.type === "cocktail" ? "Portion" : ""}</td>
@@ -818,21 +956,21 @@ const Sales = () => {
                 <button onClick={handlePrint} className="bg-blue-600 text-white px-6 py-2 rounded-3xl hover:bg-blue-700">Print</button>
                 <button onClick={handleDownloadPDF} className="bg-green-600 text-white px-3 py-1 rounded-3xl hover:bg-green-700">Download PDF</button>
               </div>
-              <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif',width:'70mm',maxWidth:'70mm',minWidth:'70mm',padding:'0.5em',fontSize:'11px'}}>
-                <h2 style={{fontWeight:'bold',fontSize:'1.1rem',marginBottom:'0.5rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
-                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
+              <div ref={receiptRef} className="receipt-area mx-auto" style={{background:'#fff',color:'#000',fontFamily:'Arial, sans-serif',width:'70mm',maxWidth:'70mm',minWidth:'70mm',padding:'0.5em',fontSize:'15px'}}>
+                <h2 style={{fontWeight:'bold',fontSize:'1.5rem',marginBottom:'0.7rem',textAlign:'center',lineHeight:1.3,padding:'0.2em 0'}}>Bill / Receipt</h2>
+                <div style={{borderTop:'2px solid #555',margin:'0.7rem 0'}}></div>
                 {/* Restaurant details below heading */}
-                <div style={{marginBottom:'0.5rem',textAlign:'center'}}>
-                  <div style={{fontWeight:'bold',fontSize:'1rem',lineHeight:1.3,padding:'0.2em 0'}}>{restaurant.name}</div>
-                  <div style={{fontSize:'0.7rem',color:'#333',whiteSpace:'pre-line'}}>{restaurant.address}</div>
-                  <div style={{fontSize:'0.7rem',color:'#333'}}>{restaurant.phone}</div>
-                  <div style={{fontSize:'0.7rem',color:'#333'}}>{restaurant.email}</div>
+                <div style={{marginBottom:'0.7rem',textAlign:'center'}}>
+                  <div style={{fontWeight:'bold',fontSize:'1.3rem',lineHeight:1.3,padding:'0.2em 0'}}>{restaurant.name}</div>
+                  <div style={{fontSize:'1.1rem',color:'#333',whiteSpace:'pre-line'}}>{restaurant.address}</div>
+                  <div style={{fontSize:'1.1rem',color:'#333'}}>{restaurant.phone}</div>
+                  <div style={{fontSize:'1.1rem',color:'#333'}}>{restaurant.email}</div>
                 </div>
-                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <div style={{marginBottom:'0.5rem',fontSize:'0.7rem',color:'#555'}}>Bill ID: {bill.billId}</div>
-                <div style={{marginBottom:'0.5rem',fontSize:'0.8rem'}}>{bill.time}</div>
-                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <table style={{width:'100%',marginBottom:'1rem',fontSize:'0.8rem',tableLayout:'fixed',wordBreak:'break-word'}}>
+                <div style={{borderTop:'2px solid #555',margin:'0.7rem 0'}}></div>
+                <div style={{marginBottom:'0.7rem',fontSize:'1.1rem',color:'#555'}}>Bill ID: {bill.billId}</div>
+                <div style={{marginBottom:'0.7rem',fontSize:'1.1rem'}}>{bill.time}</div>
+                <div style={{borderTop:'2px solid #555',margin:'0.7rem 0'}}></div>
+                <table style={{width:'100%',marginBottom:'1.2rem',fontSize:'1.1rem',tableLayout:'fixed',wordBreak:'break-word'}}>
                   <thead>
                     <tr style={{borderBottom:'1px solid #bbb'}}>
                       <th style={{textAlign:'left'}}>Item</th>
@@ -872,11 +1010,11 @@ const Sales = () => {
                     })}
                   </tbody>
                 </table>
-                <div style={{borderTop:'2px solid #555',margin:'0.5rem 0'}}></div>
-                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1rem',fontSize:'0.9rem'}}>Total:LKR {bill.total.toLocaleString()}</div>
+                <div style={{borderTop:'2px solid #555',margin:'0.7rem 0'}}></div>
+                <div style={{fontWeight:'bold',textAlign:'right',marginBottom:'1.2rem',fontSize:'1.2rem'}}>Total: {bill.total.toLocaleString()}</div>
                 {/* Cash and Change for print */}
-                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.2rem'}}>Cash:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
-                <div style={{textAlign:'right',fontSize:'0.9rem',marginBottom:'0.5rem'}}>Change:LKR {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
+                <div style={{textAlign:'right',fontSize:'1.1rem',marginBottom:'0.3rem'}}>Cash: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? Number(cashGiven).toLocaleString() : '0'}</div>
+                <div style={{textAlign:'right',fontSize:'1.1rem',marginBottom:'0.7rem'}}>Change: {cashGiven !== '' && !isNaN(Number(cashGiven)) ? (Number(cashGiven) - bill.total).toLocaleString() : '0'}</div>
               </div>
               <div className="flex justify-end gap-2">
                 <button onClick={closeBill} className="bg-gray-400 text-white px-4 py-2 rounded-3xl hover:bg-gray-500">Close</button>
