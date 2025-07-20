@@ -298,18 +298,52 @@ const Sales = () => {
     setLoading(true);
     const billId = generateBillId();
     try {
-      // For each bill item, update inventory and log sale
+      // 1. Aggregate all bill items by inventoryId
+      const inventoryUpdates = {};
+      for (const b of billItems) {
+        if (b.type === "bottle" || b.type === "shot") {
+          if (!inventoryUpdates[b.inventoryId]) {
+            const inv = inventory.find(i => i._id === b.inventoryId);
+            inventoryUpdates[b.inventoryId] = {
+              openVolume: inv?.openVolume || 0,
+              bottles: inv?.bottles || 0,
+              liquor: inv?.liquor,
+            };
+          }
+        }
+      }
+      // 2. Apply all bottle and shot deductions to the aggregated state
       for (const b of billItems) {
         if (b.type === "bottle") {
-          // Deduct bottles
-          const invRes = await fetch(`${apiUrl(`/inventory/${b.inventoryId}`)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bottles: inventory.find(i => i._id === b.inventoryId).bottles - b.qty })
-          });
-          const invData = await invRes.json();
-          if (!invRes.ok) throw new Error(invData.message || `Error selling bottle for ${b.brand}`);
-          // Log sale
+          inventoryUpdates[b.inventoryId].bottles -= b.qty;
+        } else if (b.type === "shot") {
+          let { openVolume, bottles, liquor } = inventoryUpdates[b.inventoryId];
+          for (let i = 0; i < b.qty; i++) {
+            if (openVolume >= b.shotSize) {
+              openVolume -= b.shotSize;
+            } else {
+              if (bottles < 1) throw new Error(`No bottles left to open for ${b.brand}`);
+              openVolume += (liquor.size || 750) - b.shotSize;
+              bottles -= 1;
+            }
+          }
+          inventoryUpdates[b.inventoryId].openVolume = openVolume;
+          inventoryUpdates[b.inventoryId].bottles = bottles;
+        }
+      }
+      // 3. Update inventory for each affected inventoryId
+      for (const [inventoryId, { bottles, openVolume }] of Object.entries(inventoryUpdates)) {
+        const invRes = await fetch(`${apiUrl(`/inventory/${inventoryId}`)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bottles, openVolume })
+        });
+        const invData = await invRes.json();
+        if (!invRes.ok) throw new Error(invData.message || `Error updating inventory for item`);
+      }
+      // 4. Log sales for each bill item
+      for (const b of billItems) {
+        if (b.type === "bottle") {
           await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -324,34 +358,11 @@ const Sales = () => {
             })
           });
         } else if (b.type === "shot") {
-          // Deduct openVolume/bottles for each shot
-          let inv = inventory.find(i => i._id === b.inventoryId);
-          let { openVolume = 0, bottles = 0, liquor } = inv;
-          let newOpenVolume = openVolume;
-          let newBottles = bottles;
-          for (let i = 0; i < b.qty; i++) {
-            if (newOpenVolume >= b.shotSize) {
-              newOpenVolume -= b.shotSize;
-            } else {
-              if (newBottles < 1) throw new Error(`No bottles left to open for ${b.brand}`);
-              newOpenVolume += liquor.size - b.shotSize;
-              newBottles -= 1;
-            }
-          }
-          // Update inventory
-          const invRes = await fetch(`${apiUrl(`/inventory/${b.inventoryId}`)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bottles: newBottles, openVolume: newOpenVolume })
-          });
-          const invData = await invRes.json();
-          if (!invRes.ok) throw new Error(invData.message || `Error selling shot for ${b.brand}`);
-          // Log sale
           await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              liquorId: inv.liquor._id,
+              liquorId: inventory.find(i => i._id === b.inventoryId).liquor._id,
               store: 2,
               type: "shot",
               quantity: b.qty * b.shotSize,
@@ -361,7 +372,6 @@ const Sales = () => {
             })
           });
         } else if (b.type === "food") {
-          // Log sale for food
           await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -376,7 +386,6 @@ const Sales = () => {
             })
           });
         } else if (b.type === "cocktail") {
-          // Log sale for cocktail
           await fetch(`${apiUrl(`/sale`)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -392,7 +401,7 @@ const Sales = () => {
           });
         }
       }
-      // Save the bill as a document
+      // 5. Save the bill as a document
       await fetch(apiUrl('/bill'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
