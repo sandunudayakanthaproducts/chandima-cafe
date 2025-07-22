@@ -53,15 +53,7 @@ const Sales = () => {
     const res = await fetch(apiUrl("/inventory?store=2"));
     const data = await res.json();
     setInventory(data);
-    // Initialize virtual open volumes
-    const vov = {};
-    data.forEach(row => {
-      vov[row._id] = {
-        openVolume: row.openVolume || 0,
-        bottles: row.bottles || 0,
-      };
-    });
-    setVirtualOpenVolumes(vov);
+    // Do NOT set virtualOpenVolumes here; let useEffect handle it
   };
 
   // Fetch food items
@@ -334,11 +326,11 @@ const Sales = () => {
       // 3. Update inventory for each affected inventoryId
       for (const [inventoryId, { bottles, openVolume }] of Object.entries(inventoryUpdates)) {
         const invRes = await fetch(`${apiUrl(`/inventory/${inventoryId}`)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ bottles, openVolume })
-        });
-        const invData = await invRes.json();
+          });
+          const invData = await invRes.json();
         if (!invRes.ok) throw new Error(invData.message || `Error updating inventory for item`);
       }
       // 4. Log sales for each bill item
@@ -454,11 +446,13 @@ const Sales = () => {
       return;
     }
     const id = generateBillId();
+    // Store a deep copy of billItems to prevent mutation issues
+    const billItemsCopy = billItems.map(item => ({ ...item }));
     setHeldBills(prev => [
       ...prev,
       {
         id,
-        billItems,
+        billItems: billItemsCopy,
         cashGiven,
         tableName: tableName.trim(),
         time: new Date().toLocaleString(),
@@ -520,25 +514,25 @@ const Sales = () => {
   // When bill is processed or canceled, reset virtual open volumes
   useEffect(() => {
     if (bill === null) {
-      // Bill closed/canceled, reset virtual open volumes
-      fetchInventory();
+      // Bill closed/canceled, do NOT fetch inventory here; let useEffect recalculate virtualOpenVolumes
+      // fetchInventory(); // REMOVE this line
     }
   }, [bill]);
 
   // Robust recalculation of virtual open volumes and bottles
   useEffect(() => {
-    // Recalculate virtual open volumes and bottles from inventory and billItems
+    // Combine billItems and all held bill items
+    const allBillItems = [...billItems, ...heldBills.flatMap(b => b.billItems || [])];
+    // Recalculate virtual open volumes and bottles from inventory and all bill items
     const vov = {};
     inventory.forEach(row => {
       let openVolume = row.openVolume || 0;
       let bottles = row.bottles || 0;
-      // 1. Subtract bottles added to bill
-      const bottleBill = billItems.find(b => b.type === "bottle" && b.inventoryId === row._id);
-      if (bottleBill) {
-        bottles -= bottleBill.qty;
-      }
-      // 2. Subtract bottles and open volume for shots in bill
-      billItems.filter(b => b.type === "shot" && b.inventoryId === row._id).forEach(b => {
+      // 1. Subtract total bottles added to bill (including held bills)
+      const totalBottleQty = allBillItems.filter(b => b.type === "bottle" && b.inventoryId === row._id).reduce((sum, b) => sum + b.qty, 0);
+      bottles -= totalBottleQty;
+      // 2. Subtract bottles and open volume for all shots in bill (including held bills)
+      allBillItems.filter(b => b.type === "shot" && b.inventoryId === row._id).forEach(b => {
         for (let i = 0; i < b.qty; i++) {
           if (openVolume >= b.shotSize) {
             openVolume -= b.shotSize;
@@ -553,7 +547,7 @@ const Sales = () => {
       vov[row._id] = { openVolume, bottles };
     });
     setVirtualOpenVolumes(vov);
-  }, [billItems, inventory]);
+  }, [billItems, heldBills, inventory]);
 
   // Helper to calculate max quantity for a bill item
   const getMaxQtyForBillItem = (b) => {
