@@ -301,7 +301,7 @@ const Inventory = () => {
         </div>
         {/* Add Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
             <div className="bg-gray-900 p-6 rounded shadow w-full ">
               <h2 className="text-xl font-bold mb-4">Add Liquor to Store 1</h2>
               <form className="space-y-3 bg-gray-900" onSubmit={handleAdd}>
